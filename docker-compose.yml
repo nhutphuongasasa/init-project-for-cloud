@@ -1,0 +1,66 @@
+version: '3.9'
+
+services:
+  # =============================================
+  # ZIPKIN (Distributed Tracing)
+  # =============================================
+  zipkin:
+    image: openzipkin/zipkin
+    container_name: zipkin
+    ports:
+      - "9411:9411"
+    environment:
+      - STORAGE_TYPE=mem  # Dùng elasticsearch ở prod
+      - JAVA_OPTS=-Xms512m -Xmx512m
+    networks:
+      - app-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9411/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # =============================================
+  # KEYCLOAK (Auth Server)
+  # =============================================
+  keycloak:
+    image: quay.io/keycloak/keycloak
+    container_name: keycloak
+    ports:
+      - "8081:8080"  # Tránh conflict với app
+    environment:
+      - KC_BOOTSTRAP_ADMIN_USERNAME=admin
+      - KC_BOOTSTRAP_ADMIN_PASSWORD=admin123  # ĐỔI TRONG PROD!
+      - KC_HOSTNAME_STRICT=false
+      - KC_HOSTNAME_STRICT_HTTPS=false
+      - KC_HTTP_ENABLED=true
+      - KC_HEALTH_ENABLED=true
+      - KC_METRICS_ENABLED=true
+      - KC_LOG_LEVEL=INFO
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=admin123
+    volumes:
+      - ./realms:/opt/keycloak/data/import:ro
+    command: start-dev --import-realm
+    networks:
+      - app-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/realms/master/.well-known/openid-configuration"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+# =============================================
+# NETWORK & VOLUMES
+# =============================================
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  zipkin-data:
+  keycloak-data:

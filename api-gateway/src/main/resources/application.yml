@@ -1,0 +1,95 @@
+# ------------------- SERVER (Netty) -------------------
+server:
+  port: 8000
+  netty:
+    connection-timeout: 2s
+    idle-timeout: 30s
+
+spring:
+  application:
+    name: api-gateway
+  
+  security:
+    oauth2:
+      client:
+        registration:
+          keycloak:
+            provider: keycloak
+            client-id: base-user-apigate-way
+            client-secret: wtJeckwraiBSmcRPcoVmu34dR6BY3ujx
+            authorization-grant-type: authorization_code
+            redirect-uri: "http://localhost:8000/login/oauth2/code/keycloak"
+            scope: openid, profile, email
+        provider:
+          keycloak:
+            issuer-uri: http://localhost:8081/realms/cloud
+  cloud:
+    gateway:
+      server:
+        webflux:
+          routes:
+            # - id: oauth2-callback
+            #   uri: http://localhost:8000  # hoặc lb://API-GATEWAY nếu dùng service discovery
+            #   predicates:
+            #     - Path=/login/oauth2/code/**
+            #   filters:
+            #     - PreserveHostHeader
+
+  # ------------------- REACTIVE (WebFlux) -------------------
+  main:
+    web-application-type: reactive  # Bắt buộc cho WebFlux
+
+  # ------------------- LOGGING -------------------
+  logging:
+    level:
+      root: INFO
+      com.mycompany.myapp: DEBUG
+      reactor.netty: INFO
+      org.springframework.web: INFO
+      org.springframework.cloud: INFO
+      brave: DEBUG  # Tracing debug
+    pattern:
+      console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+      file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    file:
+      name: logs/reactive-app.log
+      max-size: 10MB
+      max-history: 7
+
+# ------------------- ACTUATOR & REACTIVE HEALTH (Đã sửa) -------------------
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,loggers,env,threaddump,heapdump,prometheus,zipkin
+      base-path: /actuator
+      
+  # 2. Cấu hình Chi tiết cho từng Endpoint
+  endpoint:
+    # Cấu hình Health
+    health:
+      show-details: always
+      show-components: always
+      probes:
+        enabled: true  # Kubernetes liveness/readiness
+    
+    mappings:
+      health: healthcheck  
+      
+  # ------------------- HEALTH INDICATORS (Không cần 'defaults: enabled: true') -------------------
+  health:
+    diskspace:
+      enabled: true
+    refresh:
+      enabled: true
+    
+  # ------------------- TRACING: Micrometer + Brave + Zipkin -------------------
+  tracing:
+    sampling:
+      probability: 1.0  # 100% dev, giảm xuống 0.1 ở prod
+      
+  zipkin:
+    tracing:
+      endpoint: http://localhost:9411/api/v2/spans
+      connect-timeout: 1s
+      read-timeout: 5s
