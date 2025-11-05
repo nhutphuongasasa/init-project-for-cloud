@@ -41,6 +41,10 @@ services:
       - KC_LOG_LEVEL=INFO
       - KEYCLOAK_ADMIN=admin
       - KEYCLOAK_ADMIN_PASSWORD=admin123
+      - KC_DB=postgres
+      - KC_DB_URL=jdbc:postgresql://ep-rough-mountain-a14gmwzf-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+      - KC_DB_USERNAME=neondb_owner
+      - KC_DB_PASSWORD=npg_MHCgWr1Ss9Ih
     volumes:
       - ./realms:/opt/keycloak/data/import:ro
     command: start-dev --import-realm

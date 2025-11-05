@@ -28,12 +28,12 @@ spring:
       server:
         webflux:
           routes:
-            # - id: oauth2-callback
-            #   uri: http://localhost:8000  # hoặc lb://API-GATEWAY nếu dùng service discovery
-            #   predicates:
-            #     - Path=/login/oauth2/code/**
-            #   filters:
-            #     - PreserveHostHeader
+            - id: user-service
+              uri: lb://user-service
+              predicates:
+                - Path=/user/**
+              filters:
+                - PreserveHostHeader
 
   # ------------------- REACTIVE (WebFlux) -------------------
   main:
@@ -43,16 +43,16 @@ spring:
   logging:
     level:
       root: INFO
-      com.mycompany.myapp: DEBUG
+      brave: DEBUG  # Tracing debug
       reactor.netty: INFO
       org.springframework.web: INFO
       org.springframework.cloud: INFO
-      brave: DEBUG  # Tracing debug
+      com.cloud.api-gateway: DEBUG
     pattern:
       console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
       file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
     file:
-      name: logs/reactive-app.log
+      name: logs/api-gateway.log
       max-size: 10MB
       max-history: 7
 

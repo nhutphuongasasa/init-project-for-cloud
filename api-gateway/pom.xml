@@ -81,6 +81,7 @@
 			<artifactId>spring-boot-starter-security</artifactId>
 		</dependency>
 	<!-- ================================security =============================== -->
+	
 	<!-- ================================= registry ================================= -->
 	<dependency>
 		<groupId>com.alibaba.cloud</groupId>
@@ -90,7 +91,6 @@
 		<groupId>com.alibaba.cloud</groupId>
 		<artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>
 	</dependency>
-
 	<!-- ================================= registry ================================= -->
 
 		<dependency>
@@ -114,6 +114,7 @@
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
+	
 	<dependencyManagement>
 		<dependencies>
 			<dependency>
