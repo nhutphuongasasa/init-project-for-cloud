@@ -8,65 +8,159 @@ server:
 spring:
   application:
     name: api-gateway
+  cloud:
+    gateway:
+      default-filters:
+        - TokenRelay=,includeAccessToken=true
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+      routes:
+        - id: vendor-service 
+          uri: lb://vendor-service
+          predicates:
+            - Path=/api/vendor/**
+          filters:
+            - name: StripPrefix
+              args:
+                parts: 2
+        - id: product-service
+          uri: lb://product-service
+          predicates:
+            - Path=/api/product/**
+          filters:
+            - name: StripPrefix
+              args:
+                parts: 2
+        - id: inventory-service
+          uri: lb://inventory-service
+          predicates:
+            - Path=/api/inventory/**
+          filters:
+            - name: StripPrefix
+              args:
+                parts: 2
+        - id: order-service
+          uri: lb://order-service
+          predicates:
+            - Path=/api/order/**
+          filters:
+            - name: StripPrefix
+              args:
+                parts: 2
+
   
+  session:
+    store-type: redis
+    timeout: 30m
+    redis:
+      namespace: gateway:sessions
+  data:
+    redis:
+      cluster:
+        nodes:
+          - redis-node-1:6379
+          - redis-node-2:6379
+          - redis-node-3:6379
+          - redis-node-4:6379
+          - redis-node-5:6379
+          - redis-node-6:6379
+      max-redirects: 7
+      timeout: 7000ms
+      lettuce:
+        pool:
+          max-active: 15
+          max-idle: 5
+          min-idle: 1
+          max-wait: 2000ms
+
   security:
     oauth2:
       client:
         registration:
           keycloak:
             provider: keycloak
-            client-id: base-user-apigate-way
+            client-id: user-app
             client-secret: wtJeckwraiBSmcRPcoVmu34dR6BY3ujx
             authorization-grant-type: authorization_code
-            redirect-uri: "http://localhost:8000/login/oauth2/code/keycloak"
+            redirect-uri: "{baseUrl}/login/oauth2/code/keycloak"
             scope: openid, profile, email
         provider:
           keycloak:
-            issuer-uri: http://localhost:8081/realms/cloud
-  cloud:
-    gateway:
-      server:
-        webflux:
-          routes:
-            - id: user-service
-              uri: lb://user-service
-              predicates:
-                - Path=/user/**
-              filters:
-                - PreserveHostHeader
+            issuer-uri: https://keycloak.icuture.icu/realms/cloud
+  # cloud:
+  #   nacos:
+  #     discovery:
+  #       server-addr: nacos-standalone-derby:8848
+  #       namespace: public
+  #       group: DEFAULT_GROUP
+  #       username: nacos
+  #       password: phuong
 
   # ------------------- REACTIVE (WebFlux) -------------------
   main:
-    web-application-type: reactive  # Bắt buộc cho WebFlux
+    web-application-type: reactive
 
   # ------------------- LOGGING -------------------
-  logging:
-    level:
-      root: INFO
-      brave: DEBUG  # Tracing debug
-      reactor.netty: INFO
-      org.springframework.web: INFO
-      org.springframework.cloud: INFO
-      com.cloud.api-gateway: DEBUG
-    pattern:
-      console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
-      file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
-    file:
-      name: logs/api-gateway.log
-      max-size: 10MB
-      max-history: 7
+# logging:
+#   level:
+#     root: INFO
+
+#     # ==== HTTP NETTY (quan trọng để thấy request/response) ====
+#     reactor.netty.http.client: DEBUG
+#     reactor.netty.http.server: DEBUG
+#     reactor.netty.channel: DEBUG
+#     reactor.netty.transport: DEBUG
+
+#     # ==== Spring Cloud Gateway (route, filter, predicate) ====
+#     org.springframework.cloud.gateway: TRACE
+#     org.springframework.cloud.gateway.route.RouteDefinitionLocator: TRACE
+#     org.springframework.cloud.gateway.handler.RoutePredicateHandlerMapping: TRACE
+#     org.springframework.cloud.gateway.filter: TRACE
+#     org.springframework.cloud.gateway.support: TRACE
+
+#     # ==== Spring WebFlux (để thấy request vào Gateway) ====
+#     org.springframework.web: DEBUG
+#     org.springframework.web.reactive: DEBUG
+#     org.springframework.http.server.reactive: DEBUG
+
+#     # ==== Security (nếu có OAuth2/Spring Security) ====
+#     org.springframework.security: DEBUG
+#     org.springframework.security.web.server: DEBUG
+
+#     # ==== Nacos client (để thấy Gateway lookup instance) ====
+#     com.alibaba.nacos: DEBUG
+#     com.alibaba.cloud.nacos: DEBUG
+
+#     # ==== Log package dự án của bạn ====
+#     com.cloud.api_gateway: DEBUG
+
+logging:
+  level:
+    root: INFO
+    org.springframework.cloud.gateway.filter: DEBUG
+    org.springframework.cloud.gateway.handler: DEBUG
+    org.springframework.cloud.loadbalancer: DEBUG
+    org.springframework.security: DEBUG
+    com.cloud.api_gateway: DEBUG
+
+
+  pattern:
+    console: "%d{HH:mm:ss.SSS} %-5level [%thread] %logger{36} - %msg%n"
+
 
 # ------------------- ACTUATOR & REACTIVE HEALTH (Đã sửa) -------------------
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,loggers,env,threaddump,heapdump,prometheus,zipkin
+        include: health,info,metrics,loggers,env,threaddump,heapdump,prometheus,zipkin,gateway
       base-path: /actuator
       
-  # 2. Cấu hình Chi tiết cho từng Endpoint
   endpoint:
-    # Cấu hình Health
+    gateway:
+      access: unrestricted
     health:
       show-details: always
       show-components: always
@@ -86,10 +180,15 @@ management:
   # ------------------- TRACING: Micrometer + Brave + Zipkin -------------------
   tracing:
     sampling:
-      probability: 1.0  # 100% dev, giảm xuống 0.1 ở prod
+      probability: 1.0 
       
   zipkin:
     tracing:
-      endpoint: http://localhost:9411/api/v2/spans
+      endpoint: http://zipkin:9411/api/v2/spans
       connect-timeout: 1s
       read-timeout: 5s
+
+# phuongasasa:
+#   upstash:
+#     url: rediss://default:ATeeAAIncDI5YTZmMTc0ZjY4ZTc0N2I3YjQwMDBjNzExN2ZmYjk5M3AyMTQyMzg@driven-stallion-14238.upstash.io:6379
+    

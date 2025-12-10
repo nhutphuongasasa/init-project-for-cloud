@@ -1,0 +1,117 @@
+server:
+  port: 8004
+  netty:
+    connection-timeout: 2s
+    idle-timeout: 30s
+    
+spring:
+  application:
+    name: order-service
+  kafka:
+    bootstrap-servers: kafka-apache:9092            
+
+    # producer:
+    #   key-serializer: org.apache.kafka.common.serialization.StringSerializer
+    #   value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    #   acks: all
+    #   retries: 10                                              
+    #   properties:
+    #     enable.idempotence: true
+    #     max.in.flight.requests.per.connection: 1      
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 10
+      properties:
+        enable.idempotence: true
+        max.in.flight.requests.per.connection: 1
+
+    admin:   # Cho phép Spring Kafka quản lý topic
+      properties:
+        bootstrap.servers: kafka-apache:9092          
+
+    listener:
+      missing-topics-fatal: false
+      ack-mode: MANUAL_IMMEDIATE
+      concurrency: 3
+# ================================ oauth2 ===============================
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: https://keycloak.icuture.icu/realms/cloud/protocol/openid-connect/certs  
+# ================================ oauth2 ===============================
+
+# ================================database ===============================
+  jpa:
+    hibernate:
+      ddl-auto: none
+  datasource:
+    url: jdbc:postgresql://ep-empty-field-a17rpt1t-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+    username: neondb_owner
+    password: npg_T5FwDixv2JeK
+    driver-class-name: org.postgresql.Driver
+
+  flyway:
+    enabled: true
+    url: jdbc:postgresql://ep-empty-field-a17rpt1t-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+    user: neondb_owner
+    password: npg_T5FwDixv2JeK
+    locations: classpath:db/migration           
+    baseline-on-migrate: true                    
+    # schemas: user_service
+    clean-disabled: false
+# ================================database ===============================
+
+# ================================logging ===============================
+logging:
+  level:
+    root: INFO
+    brave: DEBUG
+    reactor.netty: INFO
+    org.springframework.web: INFO
+    org.springframework.cloud: INFO
+    com.cloud.order-service: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/order-service.log
+    max-size: 10MB
+    max-history: 7
+
+# ================================management ===============================
+
+# ================================tracing & health ===============================
+management:
+  health:
+    show-details: always
+    show-components: always
+    diskspace:
+      enabled: true
+    refresh:
+      enabled: true
+    probes:
+      enabled: true
+    
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,loggers,env,threaddump,heapdump,prometheus,zipkin
+      base-path: /actuator
+    
+  mappings:
+    health: healthcheck
+
+  tracing:
+    sampling:
+      probability: 1.0
+  
+  zipkin:
+    tracing:
+      endpoint: http://zipkin:9411/api/v2/spans
+      connect-timeout: 1s
+      read-timeout: 5s
+    
+# ================================tracing & health ===============================

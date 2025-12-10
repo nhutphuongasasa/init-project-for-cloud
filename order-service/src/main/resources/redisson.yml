@@ -1,0 +1,15 @@
+singleServerConfig:
+  address: "rediss://driven-stallion-14238.upstash.io:6379"
+  password: "ATeeAAIncDI5YTZmMTc0ZjY4ZTc0N2I3YjQwMDBjNzExN2ZmYjk5M3AyMTQyMzg"
+  clientName: "inventory-service"
+  subscriptionConnectionPoolSize: 50
+  connectionPoolSize: 64
+  connectionMinimumIdleSize: 16
+  idleConnectionTimeout: 10000
+  timeout: 3000
+  retryAttempts: 3
+  retryInterval: 1500
+
+threads: 16
+nettyThreads: 32
+codec: !<org.redisson.codec.JsonJacksonCodec> {}

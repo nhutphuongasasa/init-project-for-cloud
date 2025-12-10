@@ -1,6 +1,150 @@
 version: '3.9'
 
 services:
+  kafka:
+    image: apache/kafka:3.8.0
+    container_name: kafka-apache
+    hostname: kafka-apache
+    ports:
+      - "9092:9092"   # cho ứng dụng ở host
+      - "9093:9093"   # controller
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka-apache:9093
+
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-apache:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2QkFKRA==
+
+
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka-apache:9092 --list > /dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 15s
+    networks:
+      - app-network
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local-apache
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka-apache:9092
+    networks:
+      - app-network
+
+  # =============================================
+  # ORDER-SERVICE
+  # =============================================
+
+  order-service:
+    build: ./order-service
+    container_name: order-service
+    ports:
+      - "8004:8004"
+    networks:
+      - app-network
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8004/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # =============================================
+  # API GATEWAY
+  # =============================================
+
+  api-gateway:
+    build: ./api-gateway
+    container_name: api-gateway
+    ports:
+      - "8000:8000"
+    networks:
+      - app-network
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+  
+  # =============================================
+  # INVENTORY-SERVICE
+  # =============================================
+  inventory-service:
+    build: ./inventory-service
+    container_name: inventory-service
+    ports:
+      - "8003:8003"
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - app-network
+    restart: always
+    healthcheck:  
+      test: ["CMD", "curl", "-f", "http://localhost:8003/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+  
+  # =============================================
+  # PRODUCT-SERVICE
+  # =============================================
+  product-service:
+    build: ./product-service
+    container_name: product-service
+    ports:
+      - "8002:8002"
+    networks:
+      - app-network
+    restart: always
+    healthcheck:  
+      test: ["CMD", "curl", "-f", "http://localhost:8002/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+
+  # =============================================
+  # VENDOR-SERVICE
+  # =============================================
+  vendor-service:
+    build: ./vendor-service
+    container_name: vendor-service
+    ports:
+      - "8001:8001"
+    networks:
+      - app-network
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
   # =============================================
   # ZIPKIN (Distributed Tracing)
   # =============================================
@@ -22,48 +166,158 @@ services:
       retries: 5
       start_period: 10s
 
-  # =============================================
-  # KEYCLOAK (Auth Server)
-  # =============================================
-  keycloak:
-    image: quay.io/keycloak/keycloak
-    container_name: keycloak
-    ports:
-      - "8081:8080"  # Tránh conflict với app
-    environment:
-      - KC_BOOTSTRAP_ADMIN_USERNAME=admin
-      - KC_BOOTSTRAP_ADMIN_PASSWORD=admin123  # ĐỔI TRONG PROD!
-      - KC_HOSTNAME_STRICT=false
-      - KC_HOSTNAME_STRICT_HTTPS=false
-      - KC_HTTP_ENABLED=true
-      - KC_HEALTH_ENABLED=true
-      - KC_METRICS_ENABLED=true
-      - KC_LOG_LEVEL=INFO
-      - KEYCLOAK_ADMIN=admin
-      - KEYCLOAK_ADMIN_PASSWORD=admin123
-      - KC_DB=postgres
-      - KC_DB_URL=jdbc:postgresql://ep-rough-mountain-a14gmwzf-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
-      - KC_DB_USERNAME=neondb_owner
-      - KC_DB_PASSWORD=npg_MHCgWr1Ss9Ih
-    volumes:
-      - ./realms:/opt/keycloak/data/import:ro
-    command: start-dev --import-realm
-    networks:
-      - app-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/realms/master/.well-known/openid-configuration"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 90s
+#   # =============================================
+#   # REDIS CLUSTER
+#   # =============================================  
+#   redis-node-1:
+#     image: redis:6.2
+#     container_name: redis-node-1
+#     ports:
+#       - "7000:6379"
+#     volumes:
+#       - ./data/redis-node-1:/data
+#     command: >
+#       redis-server --port 6379
+#                    --cluster-enabled yes
+#                    --cluster-config-file nodes.conf
+#                    --cluster-node-timeout 5000
+#                    --appendonly yes
+#                    --cluster-announce-ip redis-node-1
+#                    --cluster-announce-port 6379
+#                    --cluster-announce-bus-port 16379
+#     healthcheck:
+#       test: ["CMD", "redis-cli", "ping"]
+#       interval: 15s
+#       timeout: 5s
+#       retries: 5
+#       start_period: 60s
+#     networks:
+#       - app-network
+
+#   redis-node-2:
+#     image: redis:6.2
+#     container_name: redis-node-2
+#     ports:
+#       - "7001:6379"
+#     volumes:
+#       - ./data/redis-node-2:/data
+#     command: >
+#       redis-server --port 6379
+#                    --cluster-enabled yes
+#                    --cluster-config-file nodes.conf
+#                    --cluster-node-timeout 5000
+#                    --appendonly yes
+#                    --cluster-announce-ip redis-node-2
+#                    --cluster-announce-port 6379
+#                    --cluster-announce-bus-port 16379
+#     healthcheck:
+#       test: ["CMD", "redis-cli", "ping"]
+#       interval: 15s
+#       timeout: 5s
+#       retries: 5
+#       start_period: 60s
+#     networks:
+#       - app-network
+
+#   redis-node-3:
+#     image: redis:6.2
+#     container_name: redis-node-3
+#     ports:
+#       - "7002:6379"
+#     volumes:
+#       - ./data/redis-node-3:/data
+#     command: >
+#       redis-server --port 6379
+#                    --cluster-enabled yes
+#                    --cluster-config-file nodes.conf
+#                    --cluster-node-timeout 5000
+#                    --appendonly yes
+#                    --cluster-announce-ip redis-node-3
+#                    --cluster-announce-port 6379
+#                    --cluster-announce-bus-port 16379
+#     networks:
+#       - app-network
+#   redis-node-4:
+#     image: redis:6.2
+#     container_name: redis-node-4
+#     ports:
+#       - "7003:6379"
+#     volumes:
+#       - ./data/redis-node-4:/data
+#     command: >
+#       redis-server --port 6379
+#                    --cluster-enabled yes
+#                    --cluster-config-file nodes.conf
+#                    --cluster-node-timeout 5000
+#                    --appendonly yes
+#                    --cluster-announce-ip redis-node-4
+#                    --cluster-announce-port 6379
+#                    --cluster-announce-bus-port 16379
+#     healthcheck:
+#       test: ["CMD", "redis-cli", "ping"]
+#       interval: 15s
+#       timeout: 5s
+#       retries: 5
+#       start_period: 60s
+#     networks:
+#       - app-network
+  
+#   redis-node-5:
+#     image: redis:6.2
+#     container_name: redis-node-5
+#     ports:
+#       - "7004:6379"
+#     volumes:
+#       - ./data/redis-node-5:/data
+#     command: >
+#       redis-server --port 6379
+#                    --cluster-enabled yes
+#                    --cluster-config-file nodes.conf
+#                    --cluster-node-timeout 5000
+#                    --appendonly yes
+#                    --cluster-announce-ip redis-node-5
+#                    --cluster-announce-port 6379
+#                    --cluster-announce-bus-port 16379
+#     healthcheck:
+#       test: ["CMD", "redis-cli", "ping"]
+#       interval: 15s
+#       timeout: 5s
+#       retries: 5
+#       start_period: 60s
+#     networks:
+#       - app-network
+
+  # redis-node-6:
+  #   image: redis:6.2
+  #   container_name: redis-node-6
+  #   ports:
+  #     - "7005:6379"
+  #   volumes:
+  #     - ./data/redis-node-6:/data
+  #   command: >
+  #     redis-server --port 6379
+  #                  --cluster-enabled yes
+  #                  --cluster-config-file nodes.conf
+  #                  --cluster-node-timeout 5000
+  #                  --appendonly yes
+  #                  --cluster-announce-ip redis-node-6
+  #                  --cluster-announce-port 6379
+  #                  --cluster-announce-bus-port 16379
+  #   healthcheck:
+  #     test: ["CMD", "redis-cli", "ping"]
+  #     interval: 15s
+  #     timeout: 5s
+  #     retries: 5
+  #     start_period: 60s
+  #   networks:
+  #     - app-network
 
 # =============================================
 # NETWORK & VOLUMES
 # =============================================
 networks:
   app-network:
-    driver: bridge
+    external: true
 
 volumes:
   zipkin-data:

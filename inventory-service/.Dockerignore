@@ -1,0 +1,31 @@
+# Build output
+target/
+build/
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+.project
+.classpath
+.settings/
+
+# System files
+.DS_Store
+Thumbs.db
+*.log
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Tests & docs
+src/test/
+README.md
+docs/
+
+# Local configs / secrets
+.env
+application-local.yml
+application-dev.yml
