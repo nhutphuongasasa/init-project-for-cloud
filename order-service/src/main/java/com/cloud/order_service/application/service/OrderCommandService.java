@@ -24,11 +24,12 @@ import com.cloud.order_service.application.dto.request.CompletePickingRequest;
 import com.cloud.order_service.application.dto.request.CompleteReceivingRequest;
 import com.cloud.order_service.application.dto.request.CreateInboundRequest;
 import com.cloud.order_service.application.dto.request.CreateOrderRequest;
-import com.cloud.order_service.application.dto.request.OrderInboundRequest;
+import com.cloud.order_service.application.dto.request.UpdateQuantiryReceivedRequest;
 import com.cloud.order_service.application.dto.response.InboundOrderResponse;
 import com.cloud.order_service.application.dto.response.OrderDetailResponse;
 import com.cloud.order_service.application.dto.response.OrderResponse;
 import com.cloud.order_service.application.exception.FulfillmentOrderNotFoundException;
+import com.cloud.order_service.application.exception.InboundOrderDetailNotFoundException;
 import com.cloud.order_service.application.exception.InvalidOrderCodeException;
 import com.cloud.order_service.application.mapper.FulfillmentOrderMapper;
 import com.cloud.order_service.application.mapper.InboundOrderMapper;
@@ -266,52 +267,65 @@ public OrderResponse completePicking(UUID orderId, CompletePickingRequest reques
 }
 
     @Transactional
-public OrderResponse startPicking(UUID orderId) {
-    return changeStatusWithLock(orderId, OrderStatus.PICKING, o -> o.setPickedAt(Instant.now()));
-}
+    public OrderResponse startPicking(UUID orderId) {
+        return changeStatusWithLock(orderId, OrderStatus.PICKING, o -> o.setPickedAt(Instant.now()));
+    }
 
-@Transactional
-public OrderResponse startPacking(UUID orderId) {
-    return changeStatusWithLock(orderId, OrderStatus.PACKING, o -> {
-        // o.setPackingAt(Instant.now()); // nếu có field này thì bật lên
-    });
-}
+    @Transactional
+    public OrderResponse startPacking(UUID orderId) {
+        return changeStatusWithLock(orderId, OrderStatus.PACKING, o -> {
+            // o.setPackingAt(Instant.now()); // nếu có field này thì bật lên
+        });
+    }
 
-@Transactional
-public OrderResponse completePacking(UUID orderId) {
-    return changeStatusWithLock(orderId, OrderStatus.PACKED, o -> o.setPackedAt(Instant.now()));
-}
-@Transactional
-public OrderResponse changeStatusWithLock(UUID orderId, OrderStatus newStatus, Consumer<FulfillmentOrder> extraAction) {
-    RLock lock = redisson.getLock(LOCK_PREFIX + orderId);
-    lock.lock(30, TimeUnit.SECONDS);
+    @Transactional
+    public OrderResponse completePacking(UUID orderId) {
+        return changeStatusWithLock(orderId, OrderStatus.PACKED, o -> o.setPackedAt(Instant.now()));
+    }
 
-    try {
-        FulfillmentOrder order = orderRepo.findById(orderId)
-                .orElseThrow(() -> new FulfillmentOrderNotFoundException());
+    @Transactional
+    public OrderResponse changeStatusWithLock(UUID orderId, OrderStatus newStatus, Consumer<FulfillmentOrder> extraAction) {
+        RLock lock = redisson.getLock(LOCK_PREFIX + orderId);
+        lock.lock(30, TimeUnit.SECONDS);
 
-        if (!isValidTransition(order.getStatus(), newStatus)) {
-            throw new InvalidOrderCodeException(
-                "Chuyển trạng thái không hợp lệ: " + order.getStatus() + " → " + newStatus);
-        }
+        try {
+            FulfillmentOrder order = orderRepo.findById(orderId)
+                    .orElseThrow(() -> new FulfillmentOrderNotFoundException());
 
-        order.setStatus(newStatus);
-        if (extraAction != null) {
-            extraAction.accept(order);
-        }
-        order.setUpdatedAt(Instant.now());
+            if (!isValidTransition(order.getStatus(), newStatus)) {
+                throw new InvalidOrderCodeException(
+                    "Chuyển trạng thái không hợp lệ: " + order.getStatus() + " → " + newStatus);
+            }
 
-        return mapper.toResponse(orderRepo.save(order));
+            order.setStatus(newStatus);
+            if (extraAction != null) {
+                extraAction.accept(order);
+            }
+            order.setUpdatedAt(Instant.now());
 
-    } finally {
-        if (lock.isHeldByCurrentThread()) {
-            lock.unlock();
+            return mapper.toResponse(orderRepo.save(order));
+
+        } finally {
+            if (lock.isHeldByCurrentThread()) {
+                lock.unlock();
+            }
         }
     }
-}
 
+    @Transactional
+    public InboundOrderResponse updateQuantityReceived(Long inboundDetailId, UpdateQuantiryReceivedRequest request){
+        InboundOrderDetail existInboundOrderDetail = inboundDetailRepo.findById(inboundDetailId)
+            .orElseThrow(() -> new InboundOrderDetailNotFoundException());
 
-@Transactional
+        existInboundOrderDetail.setQuantityReceived(request.getQuantityReceived());
+
+        // inboundDetailRepo.save(existInboundOrderDetail);
+
+        InboundOrder saved = inboundRepo.save(existInboundOrderDetail.getInboundOrder());
+        return inboundMapper.toResponse(saved);
+    }
+
+    @Transactional
     public InboundOrderResponse createInbound(CreateInboundRequest request) {
         UUID vendorId = jwtUtils.getCurrentUserId();
         String code = generateInboundCode(vendorId);

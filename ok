@@ -1,13 +1,10 @@
 -- ================================================
 -- 1. VENDOR SERVICE – vendor_db (độc lập hoàn toàn)
 -- ================================================
--- Bật extension để sinh UUID
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- Tạo ENUM type
 CREATE TYPE vendor_status AS ENUM ('PENDING','ACTIVE','SUSPENDED','BANNED','REJECTED');
 
--- Bảng vendors
 CREATE TABLE IF NOT EXISTS vendors (
     id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name            VARCHAR(255) NOT NULL,
@@ -34,45 +31,14 @@ CREATE TABLE IF NOT EXISTS vendor_profiles (
     phone       VARCHAR(20) UNIQUE,
     email       VARCHAR(255) UNIQUE NOT NULL,
     tax_code    VARCHAR(50),
-    -- stripe_account_token_id VARCHAR(100),
-    -- bank_name   VARCHAR(255),
     website_url VARCHAR(255),
     social_links JSONB DEFAULT '{}'::jsonb,
-    -- verified_at TIMESTAMP NULL,
     updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (vendor_id) REFERENCES vendors(id) ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS idx_email ON vendor_profiles(email);
 
--- Bảng vendor_settings
--- CREATE TABLE IF NOT EXISTS vendor_settings (
---     vendor_id           UUID PRIMARY KEY,
---     allow_cod           BOOLEAN DEFAULT TRUE,
---     free_shipping_min   DECIMAL(12,2) DEFAULT 0,
---     shipping_policy     JSONB DEFAULT '{}'::jsonb,
---     return_policy       JSONB DEFAULT '{}'::jsonb,
---     auto_accept_order   BOOLEAN DEFAULT FALSE,
---     notification_pref   JSONB DEFAULT '{"new_order":true,"low_stock":true,"review":true}'::jsonb,
---     default_warehouse_id BIGINT,
---     FOREIGN KEY (vendor_id) REFERENCES vendors(id) ON DELETE CASCADE
--- );
-
--- Bảng vendor_audit_logs
--- CREATE TABLE IF NOT EXISTS vendor_audit_logs (
---     id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
---     vendor_id     UUID NOT NULL,
---     action        VARCHAR(100) NOT NULL,
---     performed_by  VARCHAR(100),
---     old_values    JSONB,
---     new_values    JSONB,
---     ip_address    VARCHAR(45),
---     user_agent    VARCHAR(500),
---     created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
---     FOREIGN KEY (vendor_id) REFERENCES vendors(id) ON DELETE CASCADE
--- );
-
--- CREATE INDEX IF NOT EXISTS idx_action ON vendor_audit_logs(action, created_at);
 
 -- ================================================
 -- 2. PRODUCT SERVICE – product_db
@@ -297,34 +263,9 @@ CREATE TABLE inbound_order_details (
     
     FOREIGN KEY (inbound_order_id) REFERENCES inbound_orders(id) ON DELETE CASCADE
 );
--- ================================================
--- 5. WAREHOUSE SERVICE – warehouse_db
--- ================================================
--- CREATE TABLE warehouse_locations (
---     id            BIGINT PRIMARY KEY AUTO_INCREMENT,
---     warehouse_id  BIGINT NOT NULL,
---     zone          VARCHAR(50),
---     aisle         VARCHAR(50),
---     bin           VARCHAR(50),
---     level         INT,
---     capacity      INT DEFAULT 0,
---     FOREIGN KEY (warehouse_id) REFERENCES warehouses(id) ON DELETE CASCADE,
---     INDEX idx_zone_bin (warehouse_id, zone, bin)
--- );
-
--- -- Bảng gán kho cho vendor (rất quan trọng khi multi-vendor)
--- CREATE TABLE vendor_warehouse_access (
---     vendor_id     BIGINT NOT NULL,
---     warehouse_id  BIGINT NOT NULL,
---     is_default    BOOLEAN DEFAULT FALSE,
---     PRIMARY KEY (vendor_id, warehouse_id),
---     FOREIGN KEY (vendor_id)    REFERENCES vendors(id)    ON DELETE CASCADE,
---     FOREIGN KEY (warehouse_id) REFERENCES warehouses(id) ON DELETE CASCADE
--- );
 
 -- <======================================usecase======================================>
 
-Tier S+ (Bắt buộc làm trước – không có những cái này thì coi như chưa có hệ thống)
 
 Vendor đăng ký shop → chờ duyệt → Admin duyệt shop
 Vendor đăng nhập → chỉ thấy dữ liệu của mình (filter vendor_id ở mọi service)
@@ -410,22 +351,6 @@ STT 6 – Trừ kho khi khách đặt hàng (real‑time)
 Flow: Order Service (WebFlux) → tạo order → bắn Kafka order.confirmed → Inventory Service @KafkaListener → trừ kho + tạo movement OUTBOUND
 
 Công nghệ: Spring WebFlux (Order) + Kafka + Spring MVC (Inventory) + Redisson lock
-
-Service chính: Order → Inventory
-
-STT 7 – Tìm kiếm + lọc sản phẩm nhanh
-
-Flow: FE → Search Service GET /search?q=…&price=…&warehouse=… → Elasticsearch query → trả kết quả <50ms
-
-Công nghệ: Elasticsearch 8.x + Vietnamese analyzer + Kafka consumer (product.upserted + inventory.updated)
-
-Service chính: Search Service
-
-STT 8 – Split order tự động (multi‑vendor)
-
-Flow: Order Service → tạo order + order_items → group by vendor_id → tạo nhiều vendor_orders → bắn Kafka vendor-order.created
-
-Công nghệ: Spring WebFlux + Kafka + JPA transaction
 
 Service chính: Order Service
 

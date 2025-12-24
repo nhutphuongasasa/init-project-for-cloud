@@ -88,17 +88,17 @@ VALUES
 
 INSERT INTO products (id, vendor_id, name, description, product_code, slug, category_id, status)
 VALUES 
-    ('44444444-4444-4444-4444-444444444444', 'c8e5af8e-dff0-4ff4-8156-47d4c13a0a6b', 'Áo thun nam', 'Áo thun cotton thoáng mát', 'ATN001', 'ao-thun-nam', 
+    ('44444444-4444-4444-4444-444444444444', 'e198f49f-0887-4566-9d65-c269fb1e264f', 'Áo thun nam', 'Áo thun cotton thoáng mát', 'ATN001', 'ao-thun-nam', 
      '11111111-1111-1111-1111-111111111111', 'ACTIVE'),
-    ('55555555-5555-5555-5555-555555555555', 'c8e5af8e-dff0-4ff4-8156-47d4c13a0a6b', 'iPhone 15', 'Điện thoại Apple iPhone 15', 'IP15', 'iphone-15', 
+    ('55555555-5555-5555-5555-555555555555', 'e198f49f-0887-4566-9d65-c269fb1e264f', 'iPhone 15', 'Điện thoại Apple iPhone 15', 'IP15', 'iphone-15', 
      '22222222-2222-2222-2222-222222222222', 'ACTIVE');
 
 INSERT INTO product_variants (id, product_id, sku, vendor_id, price, original_price, attributes, weight_gram)
 VALUES 
     ('66666666-6666-6666-6666-666666666666', '44444444-4444-4444-4444-444444444444', 'ATN001-BLACK-M', 
-     'c8e5af8e-dff0-4ff4-8156-47d4c13a0a6b', 150000, 200000, '{"color":"black","size":"M"}', 250),
+     'e198f49f-0887-4566-9d65-c269fb1e264f', 150000, 200000, '{"color":"black","size":"M"}', 250),
     ('77777777-7777-7777-7777-777777777777', '55555555-5555-5555-5555-555555555555', 'IP15-128GB-BLACK', 
-     'c8e5af8e-dff0-4ff4-8156-47d4c13a0a6b', 25000000, 27000000, '{"color":"black","storage":"128GB"}', 200);
+     'e198f49f-0887-4566-9d65-c269fb1e264f', 25000000, 27000000, '{"color":"black","storage":"128GB"}', 200);
 
 INSERT INTO product_images (id, url, variant_id, is_main)
 VALUES 

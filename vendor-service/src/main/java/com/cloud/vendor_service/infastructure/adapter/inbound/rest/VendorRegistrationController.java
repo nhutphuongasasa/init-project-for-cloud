@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.cloud.vendor_service.application.dto.request.CreateRequest;
 import com.cloud.vendor_service.common.response.FormResponse;
-
+import com.cloud.vendor_service.application.dto.response.VendorProfileResponse;
 import com.cloud.vendor_service.application.dto.response.VendorResponse;
 import com.cloud.vendor_service.application.service.VendorRegistrationService;
 
@@ -49,10 +49,10 @@ public class VendorRegistrationController {
 
     @PreAuthorize("hasRole('VENDOR')")
     @GetMapping("/me")
-    public ResponseEntity<FormResponse<VendorResponse>> getMyVendor(){
+    public ResponseEntity<FormResponse<VendorProfileResponse>> getMyVendor(){
         log.info("Getting my vendor");
-        VendorResponse vendorResponse = vendorRegistrationService.getMyVendor();
-        return ResponseEntity.ok(FormResponse.<VendorResponse>builder()
+        VendorProfileResponse vendorResponse = vendorRegistrationService.getMyVendor();
+        return ResponseEntity.ok(FormResponse.<VendorProfileResponse>builder()
             .data(vendorResponse)
             .message("Get my vendor successfully")
             .timestamp(Instant.now())

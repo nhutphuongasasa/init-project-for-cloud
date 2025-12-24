@@ -3,11 +3,21 @@ server:
   port: 8000
   netty:
     connection-timeout: 2s
-    idle-timeout: 30s
+    idle-timeout: 0s
+
+# ------------------- REDIRECT URL -------------------
+redirect:
+  vendor:
+    url: vendor/dashboard
+  admin:
+    url: admin/dashboard
 
 spring:
+  session:
+      timeout: 15h
   application:
     name: api-gateway
+
   cloud:
     gateway:
       default-filters:
@@ -51,29 +61,29 @@ spring:
                 parts: 2
 
   
-  session:
-    store-type: redis
-    timeout: 30m
-    redis:
-      namespace: gateway:sessions
-  data:
-    redis:
-      cluster:
-        nodes:
-          - redis-node-1:6379
-          - redis-node-2:6379
-          - redis-node-3:6379
-          - redis-node-4:6379
-          - redis-node-5:6379
-          - redis-node-6:6379
-      max-redirects: 7
-      timeout: 7000ms
-      lettuce:
-        pool:
-          max-active: 15
-          max-idle: 5
-          min-idle: 1
-          max-wait: 2000ms
+  # session:
+  #   store-type: redis
+  #   timeout: 30m
+  #   redis:
+  #     namespace: gateway:sessions
+  # data:
+  #   redis:
+  #     cluster:
+  #       nodes:
+  #         - redis-node-1:6379
+  #         - redis-node-2:6379
+  #         - redis-node-3:6379
+  #         - redis-node-4:6379
+  #         - redis-node-5:6379
+  #         - redis-node-6:6379
+  #     max-redirects: 7
+  #     timeout: 7000ms
+  #     lettuce:
+  #       pool:
+  #         max-active: 15
+  #         max-idle: 5
+  #         min-idle: 1
+  #         max-wait: 2000ms
 
   security:
     oauth2:
@@ -89,16 +99,6 @@ spring:
         provider:
           keycloak:
             issuer-uri: https://keycloak.icuture.icu/realms/cloud
-  # cloud:
-  #   nacos:
-  #     discovery:
-  #       server-addr: nacos-standalone-derby:8848
-  #       namespace: public
-  #       group: DEFAULT_GROUP
-  #       username: nacos
-  #       password: phuong
-
-  # ------------------- REACTIVE (WebFlux) -------------------
   main:
     web-application-type: reactive
 

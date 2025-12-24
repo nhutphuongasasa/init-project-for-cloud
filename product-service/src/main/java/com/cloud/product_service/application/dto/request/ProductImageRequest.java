@@ -14,8 +14,6 @@ import lombok.ToString;
 public class ProductImageRequest {
     @NotBlank(message = "URL is required")
     private String url;
-    // @NotNull(message = "Sort order is required")
-    // private Integer sortOrder;
     @NotNull(message = "Is main is required")
     private Boolean isMain;
 }

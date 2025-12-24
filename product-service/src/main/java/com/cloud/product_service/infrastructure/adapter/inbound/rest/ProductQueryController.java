@@ -1,6 +1,7 @@
 package com.cloud.product_service.infrastructure.adapter.inbound.rest;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 import org.springdoc.core.annotations.ParameterObject;
@@ -11,6 +12,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import com.cloud.product_service.application.dto.request.ProductSearchRequest;
+import com.cloud.product_service.application.dto.response.ProductReportResponse;
 import com.cloud.product_service.application.dto.response.ProductResponse;
 import com.cloud.product_service.application.service.ProductQueryService;
 import com.cloud.product_service.common.response.FormResponse;
@@ -25,6 +27,16 @@ import lombok.RequiredArgsConstructor;
 public class ProductQueryController {
 
     private final ProductQueryService productQueryService;
+
+    @GetMapping("/filter")
+    public ResponseEntity<FormResponse<List<ProductResponse>>> filterProductVariant(@RequestParam String keyword) {
+        List<ProductResponse> result = productQueryService.filterProductVariant(keyword);
+        return ResponseEntity.ok(FormResponse.<List<ProductResponse>>builder()
+                .data(result)
+                .message("Product variants filtered successfully")
+                .timestamp(Instant.now())
+                .build());
+    }
 
     @GetMapping("/my")
     public ResponseEntity<FormResponse<Page<ProductResponse>>> getMyProducts(
@@ -57,10 +69,10 @@ public class ProductQueryController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<FormResponse<ProductResponse>> getProductById(@PathVariable UUID id) {
-        ProductResponse response = productQueryService.getProductById(id);
+    public ResponseEntity<FormResponse<ProductReportResponse>> getProductById(@PathVariable UUID id) {
+        ProductReportResponse response = productQueryService.getProductById(id);
 
-        return ResponseEntity.ok(FormResponse.<ProductResponse>builder()
+        return ResponseEntity.ok(FormResponse.<ProductReportResponse>builder()
                 .data(response)
                 .message("Product retrieved successfully")
                 .timestamp(Instant.now())

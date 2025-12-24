@@ -38,9 +38,6 @@ public class InboundOrderDetail {
     @Column(name = "product_variant_id", nullable = false)
     private UUID productVariantId;
 
-    // @Column(name = "sku", nullable = false, length = 100)
-    // private String sku;
-
     @Column(name = "product_name", nullable = false, length = 255)
     private String productName;
 

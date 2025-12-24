@@ -1,275 +1,221 @@
 "use client"
 
-// import { Header } from "@/components/header"
+import React from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import {
-  BarChart,
-  Bar,
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from "recharts"
-import { TrendingUp, Package, ShoppingCart, Warehouse, AlertTriangle } from "lucide-react"
+import { Package, ShoppingCart, Warehouse, DollarSign } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Header } from "@/components/custom/header"
+import api from "@/lib/axios"
 
-const salesData = [
-  { name: "Mon", sales: 2400, orders: 24 },
-  { name: "Tue", sales: 1398, orders: 22 },
-  { name: "Wed", sales: 9800, orders: 29 },
-  { name: "Thu", sales: 3908, orders: 20 },
-  { name: "Fri", sales: 4800, orders: 32 },
-  { name: "Sat", sales: 3800, orders: 23 },
-  { name: "Sun", sales: 4300, orders: 27 },
-]
+// Interfaces
+interface VendorProfile {
+  address: string
+  email: string
+  phone: string
+  taxCode: string
+  websiteUrl: string
+}
 
-const inventoryTrend = [
-  { name: "Week 1", inbound: 2400, outbound: 2400 },
-  { name: "Week 2", inbound: 3000, outbound: 1398 },
-  { name: "Week 3", inbound: 2000, outbound: 9800 },
-  { name: "Week 4", inbound: 2780, outbound: 3908 },
-]
+interface VendorData {
+  id: string
+  name: string
+  description: string
+  logoUrl: string
+  slug: string
+  status: string
+  joinedAt: string
+  profile: VendorProfile
+}
 
-const recentActivities = [
-  {
-    id: 1,
-    type: "order",
-    title: "New Order Received",
-    description: "Order OUT-045 placed by customer",
-    time: "2 hours ago",
-  },
-  {
-    id: 2,
-    type: "inventory",
-    title: "Low Stock Alert",
-    description: "Product KB-MEC-001 below safety level",
-    time: "4 hours ago",
-  },
-  {
-    id: 3,
-    type: "order",
-    title: "Order Shipped",
-    description: "Order OUT-044 shipped successfully",
-    time: "6 hours ago",
-  },
-  {
-    id: 4,
-    type: "inventory",
-    title: "Stock Received",
-    description: "50 units of LP-001 received",
-    time: "1 day ago",
-  },
-]
+interface InventoryItem {
+  productName: string
+  quantityAvailable?: number
+  quantity?: number
+}
+
+interface ApiResponse<T> {
+  data: T
+  message: string
+  timestamp: string
+}
 
 export default function VendorDashboard() {
+  const [vendorData, setVendorData] = React.useState<VendorData | null>(null)
+  const [inventoryData, setInventoryData] = React.useState<InventoryItem[]>([])
+  const [loading, setLoading] = React.useState<boolean>(true)
+
+  React.useEffect(() => {
+    fetchVendorData()
+  }, [])
+
+  const fetchVendorData = async () => {
+    try {
+      const response = await api.get('/api/vendor/vendor-registration/me', {
+        withCredentials: true,
+      })
+      console.log('Vendor API response:', response.data);
+      const result: ApiResponse<VendorData> = response.data
+      if (result.data) {
+        setVendorData(result.data)
+      }
+    } catch (error) {
+      console.error('Error fetching vendor data:', error)
+      // Fallback mock data
+      setVendorData({
+        id: "c8e5af8e-dff0-4ff4-8156-47d4c13a0a6b",
+        name: "Vendor Demo",
+        description: "This is a demo vendor for testing",
+        logoUrl: "https://example.com/logo.png",
+        slug: "vendor-demo",
+        status: "ACTIVE",
+        joinedAt: "2025-12-16T10:33:21.630992Z",
+        profile: {
+          address: "123 ABC Street, Ho Chi Minh City",
+          email: "demo@vendor.com",
+          phone: "0909123456",
+          taxCode: "TAX123456",
+          websiteUrl: "https://vendor-demo.com"
+        }
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="w-full h-screen flex items-center justify-center">
+        <div className="text-muted-foreground">Loading...</div>
+      </div>
+    )
+  }
+
   return (
     <div className="w-full">
-      <Header title="Dashboard" subtitle="Welcome to your seller portal" />
+      <Header 
+        title="Dashboard" 
+        subtitle={vendorData ? `Welcome back, ${vendorData.name}` : "Welcome to Seller Portal"} 
+      />
 
       <div className="p-6 space-y-6">
-        {/* KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="bg-card border-border">
+        {/* Vendor Information */}
+        {vendorData && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Vendor Information</CardTitle>
+              <CardDescription>Your business profile</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="flex items-start gap-4">
+                  {vendorData.logoUrl && (
+                    <img 
+                      src={vendorData.logoUrl} 
+                      alt={vendorData.name}
+                      className="w-16 h-16 rounded-lg object-cover border"
+                      onError={(e) => e.currentTarget.style.display = 'none'}
+                    />
+                  )}
+                  <div>
+                    <h3 className="text-lg font-semibold">{vendorData.name}</h3>
+                    <p className="text-sm text-muted-foreground mt-1">{vendorData.description}</p>
+                    <div className="mt-2 flex items-center gap-3">
+                      <span className={`px-3 py-1 text-xs rounded-full ${
+                        vendorData.status === 'ACTIVE' 
+                          ? 'bg-green-500/20 text-green-600' 
+                          : 'bg-red-500/20 text-red-600'
+                      }`}>
+                        {vendorData.status}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        Joined: {new Date(vendorData.joinedAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3 text-sm">
+                  <div className="flex gap-2">
+                    <span className="text-muted-foreground w-20">Email:</span>
+                    <span>{vendorData.profile.email}</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <span className="text-muted-foreground w-20">Phone:</span>
+                    <span>{vendorData.profile.phone}</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <span className="text-muted-foreground w-20">Address:</span>
+                    <span>{vendorData.profile.address}</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <span className="text-muted-foreground w-20">Tax Code:</span>
+                    <span>{vendorData.profile.taxCode}</span>
+                  </div>
+                  {vendorData.profile.websiteUrl && (
+                    <div className="flex gap-2">
+                      <span className="text-muted-foreground w-20">Website:</span>
+                      <a href={vendorData.profile.websiteUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                        {vendorData.profile.websiteUrl}
+                      </a>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Basic KPI Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Total Revenue</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-3xl font-bold text-foreground">$24,520</div>
-                  <p className="text-xs text-accent mt-1 flex items-center gap-1">
-                    <TrendingUp size={14} /> +12% this month
-                  </p>
-                </div>
-                <div className="text-accent opacity-20">
-                  <TrendingUp size={32} />
-                </div>
+                <div className="text-2xl font-bold">$24,520</div>
+                <DollarSign className="h-8 w-8 text-muted-foreground opacity-30" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-card border-border">
+          <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Active Products</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-3xl font-bold text-foreground">47</div>
-                  <p className="text-xs text-primary mt-1">In catalog</p>
-                </div>
-                <div className="text-primary opacity-20">
-                  <Package size={32} />
-                </div>
+                <div className="text-2xl font-bold">47</div>
+                <Package className="h-8 w-8 text-muted-foreground opacity-30" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-card border-border">
+          <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Pending Orders</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-3xl font-bold text-foreground">8</div>
-                  <p className="text-xs text-yellow-500 mt-1">Need processing</p>
-                </div>
-                <div className="text-yellow-500 opacity-20">
-                  <ShoppingCart size={32} />
-                </div>
+                <div className="text-2xl font-bold">8</div>
+                <ShoppingCart className="h-8 w-8 text-yellow-600 opacity-30" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-card border-border">
+          <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Total Stock</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-3xl font-bold text-foreground">1,847</div>
-                  <p className="text-xs text-muted-foreground mt-1">Units</p>
-                </div>
-                <div className="text-secondary opacity-20">
-                  <Warehouse size={32} />
-                </div>
+                <div className="text-2xl font-bold">1,847</div>
+                <Warehouse className="h-8 w-8 text-muted-foreground opacity-30" />
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Sales & Orders Chart */}
-          <Card className="bg-card border-border">
-            <CardHeader>
-              <CardTitle>Sales Overview</CardTitle>
-              <CardDescription>Last 7 days sales performance</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <AreaChart data={salesData}>
-                  <defs>
-                    <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="var(--color-accent)" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="var(--color-accent)" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-                  <XAxis stroke="var(--color-muted-foreground)" />
-                  <YAxis stroke="var(--color-muted-foreground)" />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "var(--color-card)",
-                      border: "1px solid var(--color-border)",
-                      borderRadius: "8px",
-                    }}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="sales"
-                    stroke="var(--color-accent)"
-                    fillOpacity={1}
-                    fill="url(#colorSales)"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-
-          {/* Inventory Movement */}
-          <Card className="bg-card border-border">
-            <CardHeader>
-              <CardTitle>Inventory Movement</CardTitle>
-              <CardDescription>Inbound vs Outbound by week</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={inventoryTrend}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-                  <XAxis stroke="var(--color-muted-foreground)" />
-                  <YAxis stroke="var(--color-muted-foreground)" />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "var(--color-card)",
-                      border: "1px solid var(--color-border)",
-                      borderRadius: "8px",
-                    }}
-                  />
-                  <Legend />
-                  <Bar dataKey="inbound" fill="var(--color-primary)" />
-                  <Bar dataKey="outbound" fill="var(--color-accent)" />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Alerts and Activities */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Alerts */}
-          <Card className="bg-card border-border">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <AlertTriangle size={20} className="text-yellow-500" />
-                Alerts & Warnings
-              </CardTitle>
-              <CardDescription>Issues requiring attention</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex gap-3 p-3 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
-                <AlertTriangle size={18} className="text-yellow-500 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium text-foreground">Low Stock Alert</p>
-                  <p className="text-xs text-muted-foreground">3 products below safety level</p>
-                </div>
-              </div>
-
-              <div className="flex gap-3 p-3 bg-red-500/10 rounded-lg border border-red-500/20">
-                <AlertTriangle size={18} className="text-red-500 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium text-foreground">Pending Order Review</p>
-                  <p className="text-xs text-muted-foreground">2 orders waiting for confirmation</p>
-                </div>
-              </div>
-
-              <Button variant="outline" className="w-full text-sm bg-transparent">
-                View All Alerts
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Recent Activity */}
-          <Card className="bg-card border-border">
-            <CardHeader>
-              <CardTitle>Recent Activity</CardTitle>
-              <CardDescription>Latest updates from your store</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {recentActivities.map((activity) => (
-                <div key={activity.id} className="flex gap-3 pb-3 border-b border-border last:border-0">
-                  <div
-                    className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${
-                      activity.type === "order" ? "bg-blue-500" : "bg-yellow-500"
-                    }`}
-                  />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-foreground">{activity.title}</p>
-                    <p className="text-xs text-muted-foreground">{activity.description}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{activity.time}</p>
-                  </div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        </div>
       </div>
     </div>
   )

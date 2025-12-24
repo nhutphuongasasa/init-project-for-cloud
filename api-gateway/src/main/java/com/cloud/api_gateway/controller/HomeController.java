@@ -19,25 +19,22 @@ import org.springframework.web.server.ServerWebExchange;
 
 import com.cloud.api_gateway.common.color.DefaultColor;
 // import com.cloud.api_gateway.utils.redis.RedisUtils;
+import org.springframework.beans.factory.annotation.Value;
 
 import reactor.core.publisher.Mono;
-
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @RestController
+@RequiredArgsConstructor
 public class HomeController {
-
+    @Value("${redirect.vendor.url}")
+    private String redirectVendorUrl;
+    @Value("${redirect.admin.url}")
+    private String redirectAdminUrl;
     private final ReactiveOAuth2AuthorizedClientService authorizedClientService;
-    // private final RedisUtils redisUtils;
 
-    public HomeController(
-        ReactiveOAuth2AuthorizedClientService authorizedClientService
-        // RedisUtils redisUtils
-    ) {
-        this.authorizedClientService = authorizedClientService;
-        // this.redisUtils = redisUtils;
-    }
     
     @GetMapping("/okela")
     public Mono<Void> home(ServerWebExchange exchange, @AuthenticationPrincipal OAuth2User user) {
@@ -59,13 +56,15 @@ public class HomeController {
             .map(GrantedAuthority::getAuthority)
             .findFirst()
             .orElse("VENDOR");
-        
-        String redirectUrl = "http://localhost:3000/test";
-        // if ("ROLE_ADMIN".equals(role) || "ADMIN".equals(role)) {
-        //     redirectUrl = "http://localhost:3000/dashboard/admin";
-        // } else {
-        //     redirectUrl = "http://localhost:3000/dashboard/vendor";
-        // }
+
+
+        String redirectUrl;
+
+        if ("ROLE_ADMIN".equals(role) || "ADMIN".equals(role)) {
+            redirectUrl = redirectAdminUrl;
+        } else {
+            redirectUrl = redirectVendorUrl;
+        }
         response.getHeaders().setLocation(URI.create(redirectUrl));
         return response.setComplete();
         }

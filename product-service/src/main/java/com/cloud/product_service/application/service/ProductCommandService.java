@@ -61,7 +61,7 @@ public class ProductCommandService {
     public void updateBasicInfo(Product product, ProductImportRow row, ImportResult result){
         
     }
-
+    
     public void createNewProductWithVariants(ExcelCreateProductDto excelDto){
         ProductImportRow first = excelDto.getRows().get(0);
         Row firstRow = first.getRow();
@@ -248,7 +248,7 @@ public class ProductCommandService {
     private Product buildProduct(ProductCreateRequest request, UUID vendorId){
         Product product = productMapper.toProduct(request, vendorId, request.getCategoryId());
         product.setProductCode(generateProductCode(vendorId, request.getSlug()));
-        product.setStatus(ProductStatus.DRAFT);
+        product.setStatus(ProductStatus.ACTIVE);
         return product;
     }
 

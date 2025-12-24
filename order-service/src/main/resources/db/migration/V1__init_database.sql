@@ -54,7 +54,6 @@ CREATE TABLE inbound_order_details (
     id BIGSERIAL PRIMARY KEY,
     inbound_order_id UUID NOT NULL REFERENCES inbound_orders(id) ON DELETE CASCADE,
     product_variant_id UUID NOT NULL,
-    -- sku VARCHAR(100) NOT NULL,
     product_name VARCHAR(255) NOT NULL,
     quantity_expected INTEGER NOT NULL,
     quantity_received INTEGER  DEFAULT 0,
@@ -68,32 +67,36 @@ INSERT INTO fulfillment_orders (
     customer_name, customer_phone, shipping_address,
     source, status, created_by
 ) VALUES (
-    uuid_generate_v4(), 'FO2512090001', 'c8e5af8e-dff0-4ff4-8156-47d4c13a0a6b',
-    '11111111-1111-1111-1111-111111111111', 'EXT-ORDER-001',
-    'Nguyễn Văn A', '0901234567', '12 Láng Hạ, Hà Nội',
+    'aaaaaaa1-aaaa-aaaa-aaaa-aaaaaaaaaaa1', -- UUID cố định
+    'FO2512090002', 'e198f49f-0887-4566-9d65-c269fb1e264f',
+    '11111111-1111-1111-1111-111111111111', 'EXT-ORDER-002',
+    'Nguyễn Văn B', '0912345678', '123 Trần Duy Hưng, Hà Nội',
     'MANUAL', 'CREATED', 'c8e5af8e-dff0-4ff4-8156-47d4c13a0a6b'
 );
 
 INSERT INTO fulfillment_order_details (
     order_id, product_variant_id, product_name, quantity_requested, unit_price, notes
 ) VALUES (
-    (SELECT id FROM fulfillment_orders WHERE order_code = 'FO2512090001'),
-    '66666666-6666-6666-6666-666666666666', 'Áo thun đen size M', 2, 150000, 'Khách đặt 2 cái'
+    'aaaaaaa1-aaaa-aaaa-aaaa-aaaaaaaaaaa1',
+    '66666666-6666-6666-6666-666666666666', -- Áo thun đen size M
+    'Áo thun nam - đen size M', 2, 150000, 'Khách đặt 2 cái'
 );
 
 INSERT INTO inbound_orders (
     id, inbound_code, vendor_id, warehouse_id, external_ref,
     supplier_name, expected_at, status, created_by
 ) VALUES (
-    uuid_generate_v4(), 'IN2512090001', 'c8e5af8e-dff0-4ff4-8156-47d4c13a0a6b',
-    '11111111-1111-1111-1111-111111111111', 'SUP-ORDER-001',
-    'Công ty May ABC', CURRENT_DATE, 'DRAFT',
-    'c8e5af8e-dff0-4ff4-8156-47d4c13a0a6b'
+    'bbbbbbb1-bbbb-bbbb-bbbb-bbbbbbbbbbb1',
+    'IN2512090002', 'e198f49f-0887-4566-9d65-c269fb1e264f',
+    '22222222-2222-2222-2222-222222222222', 'SUP-ORDER-002',
+    'Apple Vietnam', CURRENT_DATE, 'DRAFT',
+    'e198f49f-0887-4566-9d65-c269fb1e264f'
 );
 
 INSERT INTO inbound_order_details (
     inbound_order_id, product_variant_id, product_name, quantity_expected, unit_price, notes
 ) VALUES (
-    (SELECT id FROM inbound_orders WHERE inbound_code = 'IN2512090001'),
-    '66666666-6666-6666-6666-666666666666', 'Áo thun đen size M', 100, 120000, 'Nhập lô hàng mới'
+    'bbbbbbb1-bbbb-bbbb-bbbb-bbbbbbbbbbb1',
+    '77777777-7777-7777-7777-777777777777', -- iPhone 15 128GB Black
+    'iPhone 15 128GB Black', 50, 25000000, 'Nhập lô hàng iPhone mới'
 );

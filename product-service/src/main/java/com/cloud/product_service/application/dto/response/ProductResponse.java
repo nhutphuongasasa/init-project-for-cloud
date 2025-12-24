@@ -18,10 +18,10 @@ public class ProductResponse {
     private UUID vendorId;
     private String name;
     private String slug;
+    private String productCode;
     private String description;
     private UUID categoryId;
     private List<ProductVariantResponse> variants;
     private ProductStatus status;
     private Instant createdAt;
-
 }

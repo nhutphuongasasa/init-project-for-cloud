@@ -21,12 +21,10 @@ public interface InventoryItemRepository extends JpaRepository<InventoryItem, In
     Optional<InventoryItem> findByProductVariantIdAndWarehouseId(UUID productVariantId, UUID warehouseId);
 
     @Query("SELECT i FROM InventoryItem i WHERE i.productVariantId IN :variantIds " +
-           "AND i.vendorId = :vendorId " +
-           "AND (:warehouseIds IS NULL OR i.warehouse.id IN :warehouseIds)")
-    List<InventoryItem> findByProductVariantIdInAndVendorIdAndWarehouseIdIn(
+           "AND i.vendorId = :vendorId")
+    List<InventoryItem> findByProductVariantIdInAndVendorId(
             @Param("variantIds") List<UUID> variantIds,
-            @Param("vendorId") UUID vendorId,
-            @Param("warehouseIds") List<UUID> warehouseIds);
+            @Param("vendorId") UUID vendorId);
 
     List<InventoryItem> findByProductVariantIdAndVendorId(UUID variantId, UUID vendorId);
 

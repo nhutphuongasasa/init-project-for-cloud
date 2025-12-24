@@ -1,5 +1,5 @@
 #!/bin/bash
-docker-compose down
+docker-compose down -v
 
 # docker stop keycloak
 # docker rm -f keycloak

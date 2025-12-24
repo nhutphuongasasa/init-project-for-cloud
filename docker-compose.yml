@@ -1,31 +1,94 @@
 version: '3.9'
 
 services:
+  # nacosDB:
+  #   image: mysql:8.0
+  #   container_name: nacosDB
+  #   ports:
+  #     - "3306:3306"
+  #   environment:
+  #     MYSQL_ROOT_PASSWORD: root
+  #     MYSQL_DATABASE: nacos
+  #     MYSQL_USER: nacos
+  #     MYSQL_PASSWORD: nacos
+  #   volumes:
+  #     - ./nacos/nacosDB:/docker-entrypoint-initdb.d
+  #   networks:
+  #     - app-network
+  #   restart: unless-stopped
+    
+  
+  # # =============================================
+  # # NACOS (Service Discovery & Config Center)
+  # # =============================================
+  # nacos-standalone-derby:
+  #   image: nacos/nacos-server:v3.1.1
+  #   container_name: nacos-standalone-derby
+  #   hostname: nacos
+  #   # volumes:
+  #     # - ./nacos/properties/custom.properties:/home/nacos/conf/application.properties
+  #   ports:
+  #     - "8848:8848"   # Nacos console + API
+  #     - "9848:9848"   # gRPC port (nếu dùng)
+  #     - "8081:8080"   # nếu bạn muốn truy cập giao diện cũ
+  #   environment:
+  #     MODE: standalone
+  #     SPRING_DATASOURCE_PLATFORM: mysql
+  #     MYSQL_SERVICE_HOST: nacosDB
+  #     MYSQL_SERVICE_DB_NAME: nacos
+  #     MYSQL_SERVICE_USER: nacos
+  #     MYSQL_SERVICE_PASSWORD: nacos
+  #     MYSQL_SERVICE_DB_PARAM: characterEncoding=utf8&connectTimeout=10000&socketTimeout=30000&autoReconnect=true&useUnicode=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+  #     NACOS_AUTH_ENABLE: "true"
+  #     NACOS_AUTH_TOKEN: SecretKey012345678901234567890123456789012345678901234567890123456789
+  #     NACOS_AUTH_IDENTITY_KEY: serverIdentity
+  #     NACOS_AUTH_IDENTITY_VALUE: security
+  #     NACOS_AUTH_USERNAME: "nacos"
+  #     NACOS_AUTH_PASSWORD: "phuong"
+  #   networks:
+  #     - app-network
+
+  nginx:
+    image: nginx:alpine
+    container_name: nginx-proxy
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  my-app:
+    build: ./my-app
+    container_name: my-app
+    expose:
+      - "80"
+    networks:
+      - app-network
+    restart: unless-stopped
+      
   kafka:
     image: apache/kafka:3.8.0
     container_name: kafka-apache
     hostname: kafka-apache
     ports:
-      - "9092:9092"   # cho ứng dụng ở host
-      - "9093:9093"   # controller
+      - "9092:9092"
+      - "9093:9093"
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka-apache:9093
-
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-apache:9092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       CLUSTER_ID: MkU3OEVBNTcwNTJENDM2QkFKRA==
-
-
     healthcheck:
       test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka-apache:9092 --list > /dev/null || exit 1"]
       interval: 10s
@@ -35,24 +98,23 @@ services:
     networks:
       - app-network
 
-  kafka-ui:
-    image: provectuslabs/kafka-ui:latest
-    container_name: kafka-ui
-    depends_on:
-      kafka:
-        condition: service_healthy
-    ports:
-      - "8080:8080"
-    environment:
-      KAFKA_CLUSTERS_0_NAME: local-apache
-      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka-apache:9092
-    networks:
-      - app-network
+  # kafka-ui:
+  #   image: provectuslabs/kafka-ui:latest
+  #   container_name: kafka-ui
+  #   depends_on:
+  #     kafka:
+  #       condition: service_healthy
+  #   ports:
+  #     - "8080:8080"
+  #   environment:
+  #     KAFKA_CLUSTERS_0_NAME: local-apache
+  #     KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka-apache:9092
+  #   networks:
+  #     - app-network
 
   # =============================================
   # ORDER-SERVICE
   # =============================================
-
   order-service:
     build: ./order-service
     container_name: order-service
@@ -71,12 +133,11 @@ services:
   # =============================================
   # API GATEWAY
   # =============================================
-
   api-gateway:
     build: ./api-gateway
     container_name: api-gateway
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
     networks:
       - app-network
     restart: always
@@ -86,7 +147,7 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
-  
+
   # =============================================
   # INVENTORY-SERVICE
   # =============================================
@@ -95,19 +156,16 @@ services:
     container_name: inventory-service
     ports:
       - "8003:8003"
-    depends_on:
-      kafka:
-        condition: service_healthy
     networks:
       - app-network
     restart: always
-    healthcheck:  
+    healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8003/actuator/health"]
       interval: 15s
       timeout: 5s
       retries: 5
       start_period: 10s
-  
+
   # =============================================
   # PRODUCT-SERVICE
   # =============================================
@@ -119,13 +177,12 @@ services:
     networks:
       - app-network
     restart: always
-    healthcheck:  
+    healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8002/actuator/health"]
       interval: 15s
       timeout: 5s
       retries: 5
       start_period: 10s
-
 
   # =============================================
   # VENDOR-SERVICE
@@ -138,6 +195,12 @@ services:
     networks:
       - app-network
     restart: always
+    environment:
+      - NACOS_SERVER_ADDR=nacos-standalone-derby:8848
+      - NACOS_NAMESPACE=public
+      - NACOS_GROUP=DEFAULT_GROUP
+      - NACOS_USERNAME=nacos
+      - NACOS_PASSWORD=phuong
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8001/actuator/health"]
       interval: 15s
@@ -146,7 +209,7 @@ services:
       start_period: 10s
 
   # =============================================
-  # ZIPKIN (Distributed Tracing)
+  # ZIPKIN
   # =============================================
   zipkin:
     image: openzipkin/zipkin
@@ -154,171 +217,12 @@ services:
     ports:
       - "9411:9411"
     environment:
-      - STORAGE_TYPE=mem  # Dùng elasticsearch ở prod
+      - STORAGE_TYPE=mem
       - JAVA_OPTS=-Xms512m -Xmx512m
     networks:
       - app-network
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9411/health"]
-      interval: 15s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
 
-#   # =============================================
-#   # REDIS CLUSTER
-#   # =============================================  
-#   redis-node-1:
-#     image: redis:6.2
-#     container_name: redis-node-1
-#     ports:
-#       - "7000:6379"
-#     volumes:
-#       - ./data/redis-node-1:/data
-#     command: >
-#       redis-server --port 6379
-#                    --cluster-enabled yes
-#                    --cluster-config-file nodes.conf
-#                    --cluster-node-timeout 5000
-#                    --appendonly yes
-#                    --cluster-announce-ip redis-node-1
-#                    --cluster-announce-port 6379
-#                    --cluster-announce-bus-port 16379
-#     healthcheck:
-#       test: ["CMD", "redis-cli", "ping"]
-#       interval: 15s
-#       timeout: 5s
-#       retries: 5
-#       start_period: 60s
-#     networks:
-#       - app-network
-
-#   redis-node-2:
-#     image: redis:6.2
-#     container_name: redis-node-2
-#     ports:
-#       - "7001:6379"
-#     volumes:
-#       - ./data/redis-node-2:/data
-#     command: >
-#       redis-server --port 6379
-#                    --cluster-enabled yes
-#                    --cluster-config-file nodes.conf
-#                    --cluster-node-timeout 5000
-#                    --appendonly yes
-#                    --cluster-announce-ip redis-node-2
-#                    --cluster-announce-port 6379
-#                    --cluster-announce-bus-port 16379
-#     healthcheck:
-#       test: ["CMD", "redis-cli", "ping"]
-#       interval: 15s
-#       timeout: 5s
-#       retries: 5
-#       start_period: 60s
-#     networks:
-#       - app-network
-
-#   redis-node-3:
-#     image: redis:6.2
-#     container_name: redis-node-3
-#     ports:
-#       - "7002:6379"
-#     volumes:
-#       - ./data/redis-node-3:/data
-#     command: >
-#       redis-server --port 6379
-#                    --cluster-enabled yes
-#                    --cluster-config-file nodes.conf
-#                    --cluster-node-timeout 5000
-#                    --appendonly yes
-#                    --cluster-announce-ip redis-node-3
-#                    --cluster-announce-port 6379
-#                    --cluster-announce-bus-port 16379
-#     networks:
-#       - app-network
-#   redis-node-4:
-#     image: redis:6.2
-#     container_name: redis-node-4
-#     ports:
-#       - "7003:6379"
-#     volumes:
-#       - ./data/redis-node-4:/data
-#     command: >
-#       redis-server --port 6379
-#                    --cluster-enabled yes
-#                    --cluster-config-file nodes.conf
-#                    --cluster-node-timeout 5000
-#                    --appendonly yes
-#                    --cluster-announce-ip redis-node-4
-#                    --cluster-announce-port 6379
-#                    --cluster-announce-bus-port 16379
-#     healthcheck:
-#       test: ["CMD", "redis-cli", "ping"]
-#       interval: 15s
-#       timeout: 5s
-#       retries: 5
-#       start_period: 60s
-#     networks:
-#       - app-network
-  
-#   redis-node-5:
-#     image: redis:6.2
-#     container_name: redis-node-5
-#     ports:
-#       - "7004:6379"
-#     volumes:
-#       - ./data/redis-node-5:/data
-#     command: >
-#       redis-server --port 6379
-#                    --cluster-enabled yes
-#                    --cluster-config-file nodes.conf
-#                    --cluster-node-timeout 5000
-#                    --appendonly yes
-#                    --cluster-announce-ip redis-node-5
-#                    --cluster-announce-port 6379
-#                    --cluster-announce-bus-port 16379
-#     healthcheck:
-#       test: ["CMD", "redis-cli", "ping"]
-#       interval: 15s
-#       timeout: 5s
-#       retries: 5
-#       start_period: 60s
-#     networks:
-#       - app-network
-
-  # redis-node-6:
-  #   image: redis:6.2
-  #   container_name: redis-node-6
-  #   ports:
-  #     - "7005:6379"
-  #   volumes:
-  #     - ./data/redis-node-6:/data
-  #   command: >
-  #     redis-server --port 6379
-  #                  --cluster-enabled yes
-  #                  --cluster-config-file nodes.conf
-  #                  --cluster-node-timeout 5000
-  #                  --appendonly yes
-  #                  --cluster-announce-ip redis-node-6
-  #                  --cluster-announce-port 6379
-  #                  --cluster-announce-bus-port 16379
-  #   healthcheck:
-  #     test: ["CMD", "redis-cli", "ping"]
-  #     interval: 15s
-  #     timeout: 5s
-  #     retries: 5
-  #     start_period: 60s
-  #   networks:
-  #     - app-network
-
-# =============================================
-# NETWORK & VOLUMES
-# =============================================
 networks:
   app-network:
     external: true
-
-volumes:
-  zipkin-data:
-  keycloak-data:

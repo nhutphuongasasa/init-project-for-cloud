@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+.truncate {
+  white-space: nowrap;       /* không xuống dòng */
+  overflow: hidden;          /* ẩn phần dư */
+  text-overflow: ellipsis;   /* thêm ... */
+  max-width: 150px;          /* giới hạn chiều rộng */
+}
 
 
 @layer base {

@@ -29,17 +29,13 @@ public class InventoryQueryController {
 
     private final InventoryQueryService queryService;
 
-    @GetMapping("/stock")
-    public FormResponse<Map<UUID, StockSummaryDto>> getStockByVariantIds(
-            @RequestParam("ids") List<UUID> variantIds) {
-
-        Map<UUID, StockSummaryDto> stock = queryService.getStockByVariantIds(variantIds);
-        return FormResponse.<Map<UUID, StockSummaryDto>>builder()
-                .data(stock)
-                .message("Stock retrieved successfully")
-                .timestamp(Instant.now())
-                .build();
+    @PostMapping("/stock")
+    public Map<UUID, List<StockSummaryDto>> getStockByVariantIds(
+        @RequestBody List<UUID> variantIds
+    ){
+        return queryService.getStockByVariantIds(variantIds);
     }
+
 
     @GetMapping("/stock/{variantId}")
     public FormResponse<StockDetailDto> getStockDetail(@PathVariable UUID variantId) {

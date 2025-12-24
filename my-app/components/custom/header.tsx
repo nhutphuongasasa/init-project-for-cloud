@@ -16,7 +16,7 @@ export function Header({ title, subtitle }: HeaderProps) {
     <header className="bg-card border-b border-border h-16 flex items-center justify-between px-6">
       <div>
         <h1 className="text-xl font-semibold text-foreground">{title}</h1>
-        {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
+        {subtitle && <p className="text-sm text-muted-foreground font-sans">{subtitle}</p>}
       </div>
 
       <div className="flex items-center gap-2">

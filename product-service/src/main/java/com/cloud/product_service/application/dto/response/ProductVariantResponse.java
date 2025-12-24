@@ -13,7 +13,6 @@ import lombok.Setter;
 @Getter
 public class ProductVariantResponse {
     private UUID id;
-    // private UUID productId;
     private String sku;
     private UUID vendorId;
     private BigDecimal price;

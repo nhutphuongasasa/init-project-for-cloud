@@ -30,6 +30,18 @@ import lombok.RequiredArgsConstructor;
 public class OrderQueryController {
     private final OrderQueryService orderQueryService;
 
+    @GetMapping("/{id}")
+    public ResponseEntity<FormResponse<OrderResponse>> getOrderDetail(
+        @PathVariable UUID id
+    ) {
+        OrderResponse response = orderQueryService.getAnyOrder(id);
+        return ResponseEntity.ok(FormResponse.<OrderResponse>builder()
+                .data(response)
+                .message("Success")
+                .timestamp(java.time.Instant.now())
+                .build());
+    }
+
     @GetMapping
     public ResponseEntity<FormResponse<Page<OrderSummaryResponse>>> getMyOrders(
         @PageableDefault Pageable pageable
@@ -78,6 +90,8 @@ public class OrderQueryController {
                 .build());
     }
 
+
+
     @GetMapping("/my-inbound")
     public ResponseEntity<FormResponse<Page<InboundOrderResponse>>> getMyInboundOrders(
         @PageableDefault Pageable pageable
@@ -102,29 +116,29 @@ public class OrderQueryController {
                 .build());
     }
 
-    // @GetMapping("/my-inbound/{id}")
-    // public ResponseEntity<FormResponse<InboundOrderResponse>> getMyInboundOrderDetail(
-    //     @PathVariable UUID id
-    // ) {
-    //     InboundOrderResponse response = orderQueryService.getMyInboundOrderDetail(id);
-    //     return ResponseEntity.ok(FormResponse.<InboundOrderResponse>builder()
-    //             .data(response)
-    //             .message("Success")
-    //             .timestamp(java.time.Instant.now())
-    //             .build());
-    // }
+    @GetMapping("/my-inbound/{id}")
+    public ResponseEntity<FormResponse<InboundOrderResponse>> getMyInboundOrderDetail(
+        @PathVariable UUID id
+    ) {
+        InboundOrderResponse response = orderQueryService.getMyInboundOrder(id);
+        return ResponseEntity.ok(FormResponse.<InboundOrderResponse>builder()
+                .data(response)
+                .message("Success")
+                .timestamp(java.time.Instant.now())
+                .build());
+    }
 
-    // @GetMapping("/inbound/{id}")
-    // public ResponseEntity<FormResponse<InboundOrderResponse>> getInboundOrderDetail(
-    //     @PathVariable UUID id
-    // ) {
-    //     InboundOrderResponse response = orderQueryService.getInboundOrderDetail(id);
-    //     return ResponseEntity.ok(FormResponse.<InboundOrderResponse>builder()
-    //             .data(response)
-    //             .message("Success")
-    //             .timestamp(java.time.Instant.now())
-    //             .build());
-    // }
+    @GetMapping("/inbound/{id}")
+    public ResponseEntity<FormResponse<InboundOrderResponse>> getInboundOrderDetail(
+        @PathVariable UUID id
+    ) {
+        InboundOrderResponse response = orderQueryService.getAnyInboundOrderDetail(id);
+        return ResponseEntity.ok(FormResponse.<InboundOrderResponse>builder()
+                .data(response)
+                .message("Success")
+                .timestamp(java.time.Instant.now())
+                .build());
+    }
 
     @GetMapping("/search")
     public ResponseEntity<FormResponse<Page<OrderSummaryResponse>>> searchOrders(

@@ -12,6 +12,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
+import com.cloud.vendor_service.application.dto.response.VendorProfileResponse;
 import com.cloud.vendor_service.application.dto.request.VendorSearchRequest;
 import com.cloud.vendor_service.application.dto.response.VendorResponse;
 import com.cloud.vendor_service.application.mapper.VendorMapper;
@@ -43,6 +44,18 @@ public class VendorAdminService {
         this.vendorRepository = vendorRepository;
         this.vendorMapper = vendorMapper;
         this.vendorStatusManager = new VendorStatusManager();
+    }
+
+    public VendorProfileResponse getVendorById(UUID vendorId){
+        log.info("Fetching vendor by id={}", vendorId);
+        Vendor existedVendor = vendorRepository.findById(vendorId)
+            .orElseThrow(() -> {
+                log.error("Vendor not found with id={}", vendorId);
+                return new VendorNotFoundException(vendorId);
+            });
+
+        log.debug("Vendor found: {}", existedVendor);
+        return vendorMapper.toVendorProfileResponse(existedVendor);
     }
 
     public Page<VendorResponse> getAllVendoer(int page, int size){

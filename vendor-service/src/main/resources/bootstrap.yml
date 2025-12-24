@@ -1,9 +1,29 @@
 spring:
+  application:
+    name: vendor-service
   cloud:
     nacos:
       discovery:
-        server-addr: nacos-standalone-derby:8848
-        namespace: public
-        group: DEFAULT_GROUP
-        username: nacos
-        password: phuong
+        server-addr: ${NACOS_SERVER_ADDR}
+        namespace: ${NACOS_NAMESPACE}
+        group: ${NACOS_GROUP}
+        username: ${NACOS_USERNAME}
+        password: ${NACOS_PASSWORD}
+      config:
+        server-addr: ${NACOS_SERVER_ADDR}
+        namespace: ${NACOS_NAMESPACE}
+        group: ${NACOS_GROUP}
+        username: ${NACOS_USERNAME}
+        password: ${NACOS_PASSWORD}
+        file-extension: yaml   
+        enabled: true
+        optional: true         
+# spring:
+#   cloud:
+#     nacos:
+#       discovery:
+#         server-addr: ${NACOS_SERVER_ADDR}
+#         namespace: ${NACOS_NAMESPACE}
+#         group: ${NACOS_GROUP}
+#         username: ${NACOS_USERNAME}
+#         password: ${NACOS_PASSWORD}

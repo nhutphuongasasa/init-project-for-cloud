@@ -55,7 +55,17 @@ public StockMovementResponse recordMovement(StockMovementRecord record, UUID ven
                         newItem.setSafetyStock(10);
                         return inventoryRepo.save(newItem);
                     } else {
-                        throw new InventoryNotFoundException();
+                        log.info("Inventory item not found for variant {} and warehouse {}", record.getProductVariantId(), record.getWarehouseId());
+                        return inventoryRepo.save(
+                            InventoryItem.builder()
+                                .productVariantId(record.getProductVariantId())
+                                .warehouseId(record.getWarehouseId())
+                                .vendorId(vendorId)
+                                .quantityAvailable(0)
+                                .quantityReserved(0)
+                                .safetyStock(10)
+                                .build()
+                        );
                     }
                 });
 

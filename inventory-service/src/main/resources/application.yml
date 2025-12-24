@@ -73,12 +73,12 @@ spring:
 logging:
   level:
     root: INFO
-    brave: DEBUG
+    # brave: DEBUG
     reactor.netty: INFO
-    org.springframework.kafka: DEBUG
+    org.springframework.kafka: INFO
     org.springframework.web: INFO
-    org.springframework.cloud: DEBUG
-    com.cloud.inventory-service: DEBUG
+    org.springframework.cloud: INFO
+    com.cloud.inventory-service: INFO
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
     file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"

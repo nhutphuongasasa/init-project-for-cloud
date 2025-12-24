@@ -17,7 +17,6 @@ import lombok.Setter;
 public class InboundItemResponse {
     private Long id;
     private UUID productVariantId;
-    // private String sku;
     private String productName;
     private Integer quantityExpected;
     private Integer quantityReceived;

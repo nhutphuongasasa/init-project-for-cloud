@@ -5,9 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, RefreshCw, CheckCircle, Clock, Ban } from "lucide-react";
+import { Search, RefreshCw, CheckCircle, Clock, Ban, Eye } from "lucide-react";
 import { Header } from "@/components/custom/header";
-import axios from "axios";
+import api from "@/lib/axios";
+import Link from "next/link";
 
 interface Vendor {
   id: string;
@@ -15,9 +16,29 @@ interface Vendor {
   slug: string;
   description: string;
   logoUrl: string;
-  status: "ACTIVE" | "PENDING" | "SUSPENDED";
+  status: string
   joinedAt: string;
 }
+
+const vendorHeader: Record<keyof Vendor, string> = {
+  id: "ID",
+  name: "Name",
+  slug: "Slug",
+  description: "Description",
+  logoUrl: "Logo",
+  status: "Status",
+  joinedAt: "Joined At",
+}
+
+const columns: (keyof Vendor)[] = [
+  "id",
+  "name",
+  "slug",
+  "description",
+  "logoUrl",
+  "status",
+  "joinedAt",
+]
 
 const statusConfig = {
   ACTIVE: { icon: CheckCircle, color: "text-green-500", bg: "bg-green-500/10", label: "Đã duyệt" },
@@ -27,7 +48,6 @@ const statusConfig = {
 
 export default function VendorsPage() {
   const [vendors, setVendors] = useState<Vendor[]>([]);
-  const [filteredVendors, setFilteredVendors] = useState<Vendor[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const [approvingId, setApprovingId] = useState<string | null>(null);
@@ -43,9 +63,8 @@ export default function VendorsPage() {
         url = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/vendor/admin/all?page=0&size=20`;
       }
 
-      const res = await axios.get(url, { withCredentials: true });
+      const res = await api.get(url, { withCredentials: true });
 
-      // Xử lý 2 kiểu response khác nhau
       let rawData: any[] = [];
 
       if (fetchMode === "pending") {
@@ -63,18 +82,16 @@ export default function VendorsPage() {
         name: v.name || "Chưa đặt tên",
         slug: v.slug || "",
         description: v.description || "",
-        logoUrl: v.logoUrl || "",
+        logoUrl: v.logoUrl || "chua co logo",
         status: v.status || "PENDING",
         joinedAt: v.joinedAt || v.createdAt || new Date().toISOString(),
       }));
 
       setVendors(mapped);
-      setFilteredVendors(mapped);
     } catch (err: any) {
       console.error("Lỗi fetch:", err);
       alert(err.response?.data?.message || "Lỗi kết nối API");
       setVendors([]);
-      setFilteredVendors([]);
     } finally {
       setLoading(false);
     }
@@ -85,13 +102,12 @@ export default function VendorsPage() {
 
     try {
       setApprovingId(vendorId);
-      await axios.post(
+      await api.post(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/vendor/admin/approve/${vendorId}`,
         {},
         { withCredentials: true }
       );
 
-      // Refresh lại danh sách hiện tại
       fetchVendors(mode);
       alert("Phê duyệt thành công!");
     } catch (err: any) {
@@ -108,7 +124,6 @@ export default function VendorsPage() {
       v.slug.toLowerCase().includes(term) ||
       v.description.toLowerCase().includes(term)
     );
-    setFilteredVendors(filtered);
   }, [searchTerm, vendors]);
 
   useEffect(() => {
@@ -122,6 +137,10 @@ export default function VendorsPage() {
       return "Không rõ";
     }
   };
+
+  const handleDetailVendor = (vendorId: string) => {
+    
+  }
 
   return (
     <div className="w-full min-h-screen bg-background">
@@ -162,68 +181,116 @@ export default function VendorsPage() {
         <Card>
           <CardHeader>
             <CardTitle>
-              {mode === "all" ? "Tất cả nhà bán" : "Nhà bán chờ duyệt"} ({filteredVendors.length})
+              {mode === "all" ? "Tất cả nhà bán" : "Nhà bán chờ duyệt"} ({vendors.length})
             </CardTitle>
           </CardHeader>
           <CardContent>
             {loading ? (
               <p className="text-center py-8 text-muted-foreground">Đang tải...</p>
-            ) : filteredVendors.length === 0 ? (
+            ) : vendors.length === 0 ? (
               <p className="text-center py-8 text-muted-foreground">
                 Không có nhà bán nào {mode === "pending" ? "đang chờ duyệt" : ""}
               </p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
-                  <thead className="border-b">
-                    <tr>
-                      <th className="text-left py-3 px-4">Logo</th>
-                      <th className="text-left py-3 px-4">Tên shop</th>
-                      <th className="text-left py-3 px-4">Slug</th>
-                      <th className="text-left py-3 px-4">Mô tả</th>
-                      <th className="text-left py-3 px-4">Ngày đăng ký</th>
-                      <th className="text-left py-3 px-4">Trạng thái</th>
-                      <th className="text-left py-3 px-4">Hành động</th>
-                    </tr>
-                  </thead>
+                      <thead>
+                        <tr className="border-b border-border">
+                          {Object.entries(vendorHeader).map(([key, value]) => (
+                            <th key={key} className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
+                              {value}
+                            </th>
+                          ))}
+                          <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
+                            Action
+                          </th>
+                          <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
+                            Detail
+                          </th>
+                        </tr>
+                      </thead>
                   <tbody>
-                    {filteredVendors.map((v) => {
-                      const cfg = statusConfig[v.status] || statusConfig.PENDING;
-                      const Icon = cfg.icon;
-                      return (
-                        <tr key={v.id} className="border-b hover:bg-muted/50">
-                          <td className="py-4 px-4">
-                            {v.logoUrl && v.logoUrl !== "test" ? (
-                              <img src={v.logoUrl} alt="" className="w-10 h-10 rounded object-cover" />
-                            ) : (
-                              <div className="w-10 h-10 bg-gray-200 rounded flex items-center justify-center text-xs">?</div>
-                            )}
-                          </td>
-                          <td className="py-4 px-4 font-medium">{v.name}</td>
-                          <td className="py-4 px-4 text-muted-foreground">{v.slug}</td>
-                          <td className="py-4 px-4 text-muted-foreground max-w-xs truncate">{v.description || "-"}</td>
-                          <td className="py-4 px-4 text-muted-foreground">{formatDate(v.joinedAt)}</td>
-                          <td className="py-4 px-4">
-                            <Badge variant="outline" className={`${cfg.bg} ${cfg.color} border-0`}>
-                              <Icon className="w-3 h-3 mr-1" />
-                              {cfg.label}
-                            </Badge>
-                          </td>
-                          <td className="py-4 px-4">
-                            {v.status === "PENDING" && (
-                              <Button
-                                size="sm"
-                                onClick={() => handleApprove(v.id)}
-                                disabled={approvingId === v.id}
-                                className="bg-green-600 hover:bg-green-700"
-                              >
-                                {approvingId === v.id ? "Đang..." : "Phê duyệt"}
-                              </Button>
-                            )}
+                    {
+                      vendors.length === 0 ? (
+                        <tr>
+                          <td colSpan={Object.keys(vendorHeader).length} className="py-4 px-4 text-center">
+                            Không có dữ liệu
                           </td>
                         </tr>
-                      );
-                    })}
+                      ) : (
+                        vendors.map((vendor) => (
+                          <tr key={vendor.id}>
+                            {columns.map((column) => {
+                              if (column === "status"){
+                                return (
+                                  <td key={column} className="py-4 px-4 text-sm">
+                                  {vendor.status === "ACTIVE" && (
+                                    <span className="px-2 py-1 rounded-full bg-green-100 text-green-600 text-xs font-semibold">
+                                      {vendor.status}
+                                    </span>
+                                  )}
+                                  {vendor.status === "PENDING" && (
+                                    <span className="px-2 py-1 rounded-full bg-yellow-100 text-yellow-600 text-xs font-semibold">
+                                      {vendor.status}
+                                    </span>
+                                  )}
+                                  {vendor.status === "SUSPENDED" && (
+                                    <span className="px-2 py-1 rounded-full bg-red-100 text-red-600 text-xs font-semibold">
+                                      {vendor.status}
+                                    </span>
+                                  )}
+                                  {vendor.status === "REJECTED" && (
+                                    <span className="px-2 py-1 rounded-full bg-rose-100 text-rose-600 text-xs font-semibold">
+                                      {vendor.status}
+                                    </span>
+                                  )}
+                                </td>
+                                )
+                              }
+                              if (column === "joinedAt") {
+                                return (
+                                  <td key={column} className="py-4 px-4 text-sm text-muted-foreground truncate">
+                                    {formatDate(vendor.joinedAt)}
+                                  </td>
+                                );
+                              }
+                              else{
+                                return (
+                                  <td key={column} className="py-4 px-4 text-sm font-medium text-muted-foreground truncate">
+                                    {vendor[column]}
+                                  </td>
+                                )
+                              }
+                            }
+                            )}
+                            <td className="py-4 px-4 text-sm font-medium text-muted-foreground">
+                              {vendor.status === "PENDING" && (
+                              <Button
+                                className="bg-green-500 text-white hover:bg-green-400"
+                                variant="outline"
+                                onClick={() => handleApprove(vendor.id)}
+                                disabled={approvingId === vendor.id}
+                              >
+                                {approvingId === vendor.id ? "Đang duyệt..." : "Phê duyệt"}
+                              </Button>
+                              )}
+                            </td>
+                            <td>
+                              <Link href={`/admin/vendors/${vendor.id}`}>
+                                <Button
+                                  variant="outline"
+                                  className="flex items-center gap-2 border-blue-500 text-blue-600 hover:bg-blue-50 hover:text-blue-700 transition-colors"
+                                  onClick={() => handleDetailVendor(vendor.id)}
+                                >
+                                  <Eye className="h-4 w-4" />
+                                  <span>View details</span>
+                                </Button>
+                              </Link>
+                            </td>
+                          </tr>
+                        ))
+                      )
+                    }
                   </tbody>
                 </table>
               </div>

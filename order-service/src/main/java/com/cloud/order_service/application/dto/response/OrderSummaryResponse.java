@@ -15,6 +15,7 @@ import lombok.Setter;
 @Builder
 public class OrderSummaryResponse{
     private UUID id;
+    private UUID vendorId;
     private String orderCode;
     private String customerName;
     private String customerPhone;

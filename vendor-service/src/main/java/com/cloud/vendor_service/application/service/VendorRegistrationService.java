@@ -5,6 +5,7 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 
 import com.cloud.vendor_service.application.dto.request.CreateRequest;
+import com.cloud.vendor_service.application.dto.response.VendorProfileResponse;
 import com.cloud.vendor_service.application.dto.response.VendorResponse;
 import com.cloud.vendor_service.application.mapper.VendorFactory;
 import com.cloud.vendor_service.application.mapper.VendorMapper;
@@ -87,7 +88,7 @@ public class VendorRegistrationService {
     }
 
     // Lấy danh sách shop của user hiện tại
-    public VendorResponse getMyVendor(){
+    public VendorProfileResponse getMyVendor(){
         UUID vendorId = UUID.fromString(jwtUtils.getCurrentUserId());
         log.info("Fetching vendor for vendorId={}", vendorId);
 
@@ -100,6 +101,6 @@ public class VendorRegistrationService {
             log.debug("Vendor found for vendorId={}: {}", vendorId, vendor);
         }
 
-        return vendorMapper.toResponse(vendor);
+        return vendorMapper.toVendorProfileResponse(vendor);
     }
 }

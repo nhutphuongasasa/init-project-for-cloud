@@ -29,6 +29,8 @@ public interface InboundOrderMapper {
     @Mapping(target = "inboundOrder", source = "order")
     InboundOrderDetail toDetailEntity(InboundItemRequest item, InboundOrder order);
 
+    @Mapping(target = "createdBy", expression = "java(entity.getCreatedBy())")
+    @Mapping(target = "createdAt", expression = "java(entity.getCreatedAt())")
     InboundOrderResponse toResponse(InboundOrder entity);
 
     @Mapping(target = "totalItems", expression = "java(entity.getItems().stream().mapToInt(InboundOrderDetail::getQuantityExpected).sum())")

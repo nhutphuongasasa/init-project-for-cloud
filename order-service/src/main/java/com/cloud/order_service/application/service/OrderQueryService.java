@@ -79,6 +79,12 @@ public class OrderQueryService {
         return inboundOrderMapper.toResponse(order);
     }
 
+    public InboundOrderResponse getAnyInboundOrderDetail(UUID orderId) {
+        InboundOrder order = inboundOrderRepo.findById(orderId)
+                .orElseThrow(() -> new FulfillmentOrderNotFoundException());
+        return inboundOrderMapper.toResponse(order);
+    }
+
     public InboundOrderResponse getMyInboundOrder(UUID orderId) {
         InboundOrder order = inboundOrderRepo.findById(orderId)
                 .orElseThrow(() -> new FulfillmentOrderNotFoundException());

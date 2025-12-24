@@ -12,6 +12,7 @@ import com.cloud.order_service.domain.enums.InboundStatus;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
@@ -23,6 +24,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
 @Entity
 @Table(name = "inbound_orders")
 @Getter 
@@ -30,6 +34,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@EntityListeners(AuditingEntityListener.class)
 public class InboundOrder {
     @Id
     @UuidGenerator(style = UuidGenerator.Style.RANDOM)
@@ -64,6 +69,10 @@ public class InboundOrder {
 
     @Column(name = "created_by", nullable = false)
     private UUID createdBy;
+
+    @CreatedDate
+    @Column(name = "created_at", nullable = false)
+    private Instant createdAt;
 
     @Builder.Default
     @OneToMany(mappedBy = "inboundOrder", cascade = CascadeType.ALL, orphanRemoval = true)

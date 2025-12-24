@@ -30,7 +30,7 @@ CREATE INDEX IF NOT EXISTS idx_email ON vendor_profiles(email);
 
 INSERT INTO vendors (id, name, slug, logo_url, description, status)
 VALUES (
-    'c8e5af8e-dff0-4ff4-8156-47d4c13a0a6b',
+    'e198f49f-0887-4566-9d65-c269fb1e264f',
     'Vendor Demo',
     'vendor-demo',
     'https://example.com/logo.png',
@@ -40,7 +40,7 @@ VALUES (
 
 INSERT INTO vendor_profiles (vendor_id, address, phone, email, tax_code, website_url)
 VALUES (
-    'c8e5af8e-dff0-4ff4-8156-47d4c13a0a6b',
+    'e198f49f-0887-4566-9d65-c269fb1e264f',
     '123 Đường ABC, TP.HCM',
     '0909123456',
     'demo@vendor.com',

@@ -10,6 +10,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import com.cloud.vendor_service.application.dto.request.VendorSearchRequest;
+import com.cloud.vendor_service.application.dto.response.VendorProfileResponse;
 import com.cloud.vendor_service.application.dto.response.VendorResponse;
 import com.cloud.vendor_service.application.service.VendorAdminService;
 import com.cloud.vendor_service.common.response.FormResponse;
@@ -113,6 +114,18 @@ public class VendorAdminController {
             FormResponse.<Page<VendorResponse>>builder()
                 .data(vendorAdminService.searchVendors(params, page, size))
                 .message("Search vendors successfully")
+                .timestamp(Instant.now())
+                .build()
+        );
+    }
+
+    @GetMapping("/{vendorId}")
+    public ResponseEntity<FormResponse<VendorProfileResponse>> getVendorById(
+            @PathVariable String vendorId) {
+        return ResponseEntity.ok(
+            FormResponse.<VendorProfileResponse>builder()
+                .data(vendorAdminService.getVendorById(UUID.fromString(vendorId)))
+                .message("Get vendor by id successfully")
                 .timestamp(Instant.now())
                 .build()
         );

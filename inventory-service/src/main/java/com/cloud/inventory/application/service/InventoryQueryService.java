@@ -1,6 +1,8 @@
 package com.cloud.inventory.application.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
 import org.redisson.api.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -21,6 +23,7 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class InventoryQueryService {
@@ -36,52 +39,51 @@ public class InventoryQueryService {
     private static final Duration REPORT_CACHE_TTL    = Duration.ofMinutes(10);
     private static final Duration WAREHOUSE_CACHE_TTL = Duration.ofHours(24);
 
-    public Map<UUID, StockSummaryDto> getStockByVariantIds(List<UUID> variantIds) {
-        return getStockByVariantIds(variantIds, null);
-    }
-
-    public Map<UUID, StockSummaryDto> getStockByVariantIds(List<UUID> variantIds, List<UUID> warehouseIds) {
-        if (variantIds == null || variantIds.isEmpty()) return Map.of();
-
-        UUID vendorId = jwtUtils.getCurrentUserId();
-        String cacheKey = "stock:summary:" + vendorId + ":" +
-                (warehouseIds == null ? "all" : warehouseIds.stream()
-                        .map(UUID::toString)
-                        .collect(java.util.stream.Collectors.joining(",")));
-
-        RMapCache<UUID, StockSummaryDto> cache = redisson.getMapCache(cacheKey);
-
-        Map<UUID, StockSummaryDto> result = new HashMap<>(cache.getAll(new HashSet<>(variantIds)));
-
-        Set<UUID> missing = variantIds.stream()
-                .filter(id -> !result.containsKey(id))
-                .collect(Collectors.toSet());
-
-        if (!missing.isEmpty()) {
-            Map<UUID, Integer> dbStock = inventoryItemRepository
-                    .findByProductVariantIdInAndVendorIdAndWarehouseIdIn(
-                            new ArrayList<>(missing), vendorId, warehouseIds)
-                    .stream()
-                    .collect(Collectors.groupingBy(
-                        item -> item.getProductVariantId(),
-                        Collectors.summingInt(InventoryItem::getQuantityAvailable)
-                    ));
-
-            missing.forEach(id -> {
-                int qty = dbStock.getOrDefault(id, 0);
-                StockSummaryDto dto = StockSummaryDto.builder()
-                        .variantId(id)
-                        .totalAvailable(qty)
-                        .build();
-                result.put(id, dto);
-                cache.fastPut(id, dto, STOCK_CACHE_TTL.toMillis(), TimeUnit.MILLISECONDS);
-            });
+    public Map<UUID, List<StockSummaryDto>> getStockByVariantIds(List<UUID> variantIds) {
+        if (variantIds == null || variantIds.isEmpty()) {
+            return Map.of();
         }
 
-        variantIds.forEach(id -> result.putIfAbsent(id,
-                StockSummaryDto.builder().variantId(id).totalAvailable(0).build()));
+        UUID vendorId = jwtUtils.getCurrentUserId();
 
-        return Map.copyOf(result);
+        // Tạo cache key unique dựa trên vendor + danh sách variantIds (sắp xếp để cùng input luôn cùng key)
+        String variantIdsHash = variantIds.stream()
+            .sorted()
+            .map(UUID::toString)
+            .collect(Collectors.joining(","));
+        String cacheKey = "stock:summary:vendor:" + vendorId + ":variants:" + UUID.nameUUIDFromBytes(variantIdsHash.getBytes());
+
+        RMapCache<String, Map<UUID, List<StockSummaryDto>>> cache = redisson.getMapCache("stock:variant:warehouse:summary");
+
+        Map<UUID, List<StockSummaryDto>> cached = cache.get(cacheKey);
+        if (cached != null) {
+            log.debug("Cache HIT for stock by warehouse of {} variants", variantIds.size());
+            return cached;
+        }
+
+        log.debug("Cache MISS - querying DB for stock by warehouse of {} variants", variantIds.size());
+
+        List<InventoryItem> items = inventoryItemRepository.findByProductVariantIdInAndVendorId(variantIds, vendorId);
+
+        Map<UUID, List<StockSummaryDto>> result = items.stream()
+                .collect(Collectors.groupingBy(
+                        InventoryItem::getProductVariantId,
+                        Collectors.mapping(item -> StockSummaryDto.builder()
+                                .warehouseId(item.getWarehouseId())
+                                .quantityAvailable(item.getQuantityAvailable())
+                                .build(),
+                        Collectors.toList())
+                ));
+
+        variantIds.forEach(id -> result.putIfAbsent(id, List.of()));
+
+        cache.fastPut(cacheKey, result, STOCK_CACHE_TTL.toMillis(), TimeUnit.MILLISECONDS);
+        for (Map.Entry<UUID, List<StockSummaryDto>> entry : result.entrySet()) {
+            UUID variantId = entry.getKey();
+            List<StockSummaryDto> summaries = entry.getValue();
+            log.info("Cached stock data for key={} | variantId={} | summaries={}", cacheKey, variantId, summaries);
+        }
+        return result;
     }
 
     public StockDetailDto getStockDetail(UUID variantId) {

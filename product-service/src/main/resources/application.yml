@@ -4,6 +4,8 @@ server:
     connection-timeout: 2s
     idle-timeout: 30s
 
+
+
 spring:
   application:
     name: product-service
@@ -43,6 +45,8 @@ logging:
     root: INFO
     brave: DEBUG
     reactor.netty: INFO
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
     org.springframework.web: INFO
     org.springframework.cloud: INFO
     com.cloud.product-service: DEBUG

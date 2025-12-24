@@ -5,6 +5,7 @@ import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -20,12 +21,14 @@ import com.cloud.order_service.application.dto.request.CreateInboundRequest;
 import com.cloud.order_service.application.dto.request.CreateOrderRequest;
 import com.cloud.order_service.application.dto.request.ShipOrderRequest;
 import com.cloud.order_service.application.dto.request.UpdatePickedQuantityRequest;
+import com.cloud.order_service.application.dto.request.UpdateQuantiryReceivedRequest;
 import com.cloud.order_service.application.dto.response.InboundOrderResponse;
 import com.cloud.order_service.application.dto.response.OrderDetailResponse;
 import com.cloud.order_service.application.dto.response.OrderResponse;
 import com.cloud.order_service.application.service.OrderCommandService;
 import com.cloud.order_service.common.response.FormResponse;
 
+import brave.Response;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
@@ -72,6 +75,20 @@ public class OrderCommandController {
         return ResponseEntity.ok(FormResponse.<OrderResponse>builder()
                 .data(response)
                 .message("Order shipped successfully")
+                .timestamp(Instant.now())
+                .build());
+    }
+
+    @PatchMapping("/{id}")
+    public ResponseEntity<FormResponse<InboundOrderResponse>> updateQuantityReceivedOrder(
+        @PathVariable Long id,
+        @RequestBody UpdateQuantiryReceivedRequest request
+    ) {
+        InboundOrderResponse response = orderCommandService.updateQuantityReceived(id, request);
+        
+        return ResponseEntity.ok(FormResponse.<InboundOrderResponse>builder()
+                .data(response)
+                .message("Order updated successfully")
                 .timestamp(Instant.now())
                 .build());
     }

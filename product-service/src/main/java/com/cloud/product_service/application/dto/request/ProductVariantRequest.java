@@ -17,7 +17,6 @@ import lombok.ToString;
 @Setter
 @ToString
 public class ProductVariantRequest {
-    // private String sku;
     @NotNull(message = "Price is required")
     private BigDecimal price;
     @NotNull(message = "Original price is required")

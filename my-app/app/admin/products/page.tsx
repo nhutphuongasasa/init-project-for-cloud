@@ -1,220 +1,369 @@
 "use client"
 
-import { useState } from "react"
-// import { Header } from "@/components/header"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Search, Plus, MoreHorizontal, Eye } from "lucide-react"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { Search, Plus, MoreHorizontal, Eye, RefreshCw, Trash2, Edit2, Columns } from "lucide-react"
 import { Header } from "@/components/custom/header"
+import api from "@/lib/axios"
+import Link from "next/link"
+import { Category, columns, Product, productHeaders, ProductStatusConfig } from "@/interface/product"
 
-interface Product {
-  id: string
-  name: string
-  sku: string
-  vendor: string
-  category: string
-  status: "ACTIVE" | "DRAFT" | "INACTIVE"
-  price: string
-  stock: number
-  sales: number
-}
 
-const products: Product[] = [
-  {
-    id: "1",
-    name: "Wireless Earbuds Pro",
-    sku: "WEB-001",
-    vendor: "TechStore Vietnam",
-    category: "Electronics",
-    status: "ACTIVE",
-    price: "$89.99",
-    stock: 342,
-    sales: 1240,
-  },
-  {
-    id: "2",
-    name: "Premium Leather Wallet",
-    sku: "FH-202",
-    vendor: "Fashion Hub Co.",
-    category: "Accessories",
-    status: "ACTIVE",
-    price: "$45.50",
-    stock: 156,
-    sales: 456,
-  },
-  {
-    id: "3",
-    name: "Smart Watch Ultra",
-    sku: "EP-445",
-    vendor: "Electronics Plus",
-    category: "Electronics",
-    status: "ACTIVE",
-    price: "$299.99",
-    stock: 89,
-    sales: 234,
-  },
-  {
-    id: "4",
-    name: "Organic Coffee Blend",
-    sku: "HE-100",
-    vendor: "Home Essentials",
-    category: "Food & Beverage",
-    status: "DRAFT",
-    price: "$18.99",
-    stock: 0,
-    sales: 0,
-  },
-  {
-    id: "5",
-    name: "Memory Foam Pillow Set",
-    sku: "HE-250",
-    vendor: "Home Essentials",
-    category: "Home",
-    status: "ACTIVE",
-    price: "$129.99",
-    stock: 234,
-    sales: 678,
-  },
-]
-
-const statusConfig = {
-  ACTIVE: { bg: "bg-green-500/10", text: "text-green-500" },
-  DRAFT: { bg: "bg-yellow-500/10", text: "text-yellow-500" },
-  INACTIVE: { bg: "bg-gray-500/10", text: "text-gray-500" },
-}
 
 export default function ProductsPage() {
+  const [activeTab, setActiveTab] = useState("products")
+  const [products, setProducts] = useState<Product[]>([])
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
   const [searchTerm, setSearchTerm] = useState("")
-  const [filteredProducts, setFilteredProducts] = useState(products)
+  const [loadingProducts, setLoadingProducts] = useState(true)
+  const [loadingCategories, setLoadingCategories] = useState(true)
+  const [openAddCategory, setOpenAddCategory] = useState(false)
+  const [newCategory, setNewCategory] = useState({ name: "", slug: "", iconUrl: "" })
 
-  const handleSearch = (term: string) => {
-    setSearchTerm(term)
-    const filtered = products.filter(
-      (product) =>
-        product.name.toLowerCase().includes(term.toLowerCase()) ||
-        product.sku.toLowerCase().includes(term.toLowerCase()) ||
-        product.vendor.toLowerCase().includes(term.toLowerCase()),
-    )
-    setFilteredProducts(filtered)
+  // Load sản phẩm
+  const fetchProducts = async () => {
+    try {
+      setLoadingProducts(true)
+      const res = await api.get("/api/product/products-query")
+      const content = res.data?.data?.content || []
+      const mapped: Product[] = content.map((p: any) => ({
+        id: p.id,
+        vendorId: p.vendorId,
+        name: p.name || "Chưa đặt tên",
+        slug: p.slug || "",
+        productCode: p.productCode || "-",
+        description: p.description || "-",
+        categoryId: p.categoryId || "-",
+        status: p.status || "DRAFT",
+        createdAt: p.createdAt || "-",
+      }))
+      setProducts(mapped)
+      // setFilteredProducts(mapped)
+    } catch (err) {
+      console.error("Lỗi load sản phẩm:", err)
+      setProducts([])
+      // setFilteredProducts([])
+    } finally {
+      setLoadingProducts(false)
+    }
   }
 
-  const lowStockCount = products.filter((p) => p.stock < 100 && p.stock > 0).length
+  // Load danh mục
+  const fetchCategories = async () => {
+    try {
+      setLoadingCategories(true)
+      const res = await api.get("/api/product/category/all")
+      const list = res.data?.data || []
+      setCategories(list)
+    } catch (err) {
+      console.error("Lỗi load danh mục:", err)
+      setCategories([])
+    } finally {
+      setLoadingCategories(false)
+    }
+  }
+
+  useEffect(() => {
+    if (activeTab === "products") fetchProducts()
+    if (activeTab === "categories") fetchCategories()
+  }, [activeTab])
+
+  // Tìm kiếm sản phẩm
+  useEffect(() => {
+    const term = searchTerm.toLowerCase()
+    const filtered = products.filter(p =>
+      p.name.toLowerCase().includes(term) ||
+      p.productCode.toLowerCase().includes(term) ||
+      p.categoryId.toLowerCase().includes(term)
+    )
+    setFilteredProducts(filtered)
+  }, [searchTerm, products])
+
+  // Tạo danh mục
+  const handleCreateCategory = async () => {
+    try {
+      const slug = newCategory.slug || newCategory.name.toLowerCase().replace(/\s+/g, "-")
+      await api.post("/api/product/category", {
+        name: newCategory.name,
+        slug,
+        iconUrl: newCategory.iconUrl || "https://via.placeholder.com/64",
+        parentId: null
+      })
+      setOpenAddCategory(false)
+      setNewCategory({ name: "", slug: "", iconUrl: "" })
+      fetchCategories()
+    } catch (err) {
+      console.error("Tạo danh mục thất bại:", err)
+    }
+  }
+
+  // Xóa danh mục
+  const handleDeleteCategory = async (id: string) => {
+    if (!confirm("Xóa danh mục này?")) return
+    try {
+      await api.delete(`/api/product/category/${id}`)
+      fetchCategories()
+    } catch (err) {
+      console.error("Xóa thất bại:", err)
+    }
+  }
+
+  //get detail product
+  const handleDetailProduct = (productId: string) => {
+    
+  }
 
   return (
     <div className="w-full">
-      <Header title="Products" subtitle="Manage all products across vendors" />
+      <Header title="Quản lý sản phẩm & danh mục" subtitle="Admin có toàn quyền quản lý sản phẩm và danh mục"/>
 
-      <div className="p-6 space-y-6">
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="bg-card border-border">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total Products</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">5,240</div>
-            </CardContent>
-          </Card>
+      <div className="p-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsTrigger value="products">Sản phẩm</TabsTrigger>
+            <TabsTrigger value="categories">Danh mục</TabsTrigger>
+          </TabsList>
 
-          <Card className="bg-card border-border">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Active Products</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-accent">4,950</div>
-            </CardContent>
-          </Card>
+          {/* TAB SẢN PHẨM    phai goi api de lay*/}
+          <TabsContent value="products" className="space-y-6">
+            {/* Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Card className="bg-card border-border">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Tổng sản phẩm</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-foreground">
+                    {loadingProducts ? "..." : products.length.toLocaleString()}
+                  </div>
+                </CardContent>
+              </Card>
 
-          <Card className="bg-card border-border">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Low Stock Alert</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-orange-500">{lowStockCount}</div>
-            </CardContent>
-          </Card>
-        </div>
+              <Card className="bg-card border-border">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Đang hoạt động</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-green-500">
+                    {loadingProducts ? "..." : products.filter(p => p.status === "ACTIVE").length}
+                  </div>
+                </CardContent>
+              </Card>
 
-        {/* Search and Add */}
-        <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-          <div className="relative w-full md:w-64">
-            <Search className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Search products..."
-              className="pl-10 bg-card border-border"
-              value={searchTerm}
-              onChange={(e) => handleSearch(e.target.value)}
-            />
-          </div>
-          <Button className="bg-primary text-primary-foreground hover:bg-primary/90">
-            <Plus size={18} className="mr-2" />
-            Add Product
-          </Button>
-        </div>
+              <Card className="bg-card border-border">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Cảnh báo hết hàng</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-orange-500">
+                    {loadingProducts ? "..." : products.filter(p => p.status === "DRAFT").length}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
 
-        {/* Products Table */}
-        <Card className="bg-card border-border">
-          <CardHeader>
-            <CardTitle>Product Catalog ({filteredProducts.length})</CardTitle>
-            <CardDescription>Complete product inventory across all vendors</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-border">
-                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Product Name</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">SKU</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Vendor</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Category</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Status</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Price</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Stock</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Sales</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredProducts.map((product) => (
-                    <tr key={product.id} className="border-b border-border hover:bg-sidebar/30 transition-colors">
-                      <td className="py-4 px-4 text-sm font-medium text-foreground">{product.name}</td>
-                      <td className="py-4 px-4 text-sm text-muted-foreground font-mono">{product.sku}</td>
-                      <td className="py-4 px-4 text-sm text-muted-foreground">{product.vendor}</td>
-                      <td className="py-4 px-4 text-sm text-muted-foreground">{product.category}</td>
-                      <td className="py-4 px-4 text-sm">
-                        <Badge
-                          variant="outline"
-                          className={`${statusConfig[product.status].bg} ${statusConfig[product.status].text} border-0`}
-                        >
-                          {product.status}
+            {/* Search + Refresh */}
+            <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+              <div className="relative w-full md:w-96">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Tìm tên, SKU, nhà bán, danh mục..."
+                  className="pl-10 bg-card border-border"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={fetchProducts} disabled={loadingProducts}>
+                  <RefreshCw className={`mr-2 h-4 w-4 ${loadingProducts ? "animate-spin" : ""}`} />
+                  Làm mới
+                </Button>
+                {/* <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Thêm sản phẩm
+                </Button> */}
+              </div>
+            </div>
+
+            {/* Bảng sản phẩm */}
+            <Card className="bg-card border-border">
+              <CardHeader>
+                <CardTitle>Sản phẩm ({products.length})</CardTitle>
+                <CardDescription>Admin có toàn quyền quản lý tất cả sản phẩm</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {loadingProducts ? (
+                  <div className="text-center py-16 text-muted-foreground">Đang tải sản phẩm...</div>
+                ) : products.length === 0 ? (
+                  <div className="text-center py-16 text-muted-foreground">Không tìm thấy sản phẩm nào</div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-border">
+                          {Object.entries(productHeaders).map(([key, value]) => (
+                            <th key={key} className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
+                              {value}
+                            </th>
+                          ))}
+                          <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
+                            Action
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {products.map((product) => (
+                          <tr key={product.id}>
+                            {columns.map((col) => {
+                              if(col === "status"){
+                                const config = ProductStatusConfig[product.status]
+                                return (
+                                  <td key={col} className="py-3 px-4 text-sm text-muted-foreground truncate">
+                                    {config ? (
+                                      <span
+                                        className={`px-2 py-1 rounded-full ${config.bg} ${config.text} text-xs font-semibold`}
+                                      >
+                                        {config.label}
+                                      </span>
+                                    ) : (
+                                      <span className="px-2 py-1 rounded-full bg-slate-200 text-slate-600 text-xs font-semibold">
+                                        {product.status}
+                                      </span>
+                                    )}
+                                  </td>
+                                )
+                              }else{
+                                return(
+                                  <td key={col} className="py-3 px-4 test-sm text-muted-foreground truncate">{product[col]}</td>
+                                )
+                              }
+                            })}
+                            <td className="py-3 px-4 text-sm text-center">
+                              <Link href={`/admin/products/${product.id}`}>
+                                  <Button
+                                    variant="outline"
+                                    className="flex items-center gap-2 border-blue-500 text-blue-600 hover:bg-blue-50 hover:text-blue-700 transition-colors"
+                                    // onClick={() => handleDetailProduct(product.id)}
+                                  >
+                                  <Eye className="h-4 w-4" />
+                                  <span>View details</span>
+                                </Button>
+                              </Link>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* TAB DANH MỤC */}
+          <TabsContent value="categories" className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold">Danh mục sản phẩm</h2>
+              <Dialog open={openAddCategory} onOpenChange={setOpenAddCategory}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add new category
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Tạo danh mục mới</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label>Tên danh mục</Label>
+                      <Input
+                        placeholder="Ví dụ: Quần áo"
+                        value={newCategory.name}
+                        onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label>Slug (tự động nếu để trống)</Label>
+                      <Input
+                        placeholder="quan-ao"
+                        value={newCategory.slug}
+                        onChange={(e) => setNewCategory({ ...newCategory, slug: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label>Icon URL (tùy chọn)</Label>
+                      <Input
+                        placeholder="https://example.com/icon.png"
+                        value={newCategory.iconUrl}
+                        onChange={(e) => setNewCategory({ ...newCategory, iconUrl: e.target.value })}
+                      />
+                    </div>
+                    <Button onClick={handleCreateCategory} className="w-full">
+                      Tạo danh mục
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            {loadingCategories ? (
+              <div className="text-center py-12">Đang tải danh mục...</div>
+            ) : categories.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">Chưa có danh mục nào</div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {categories.map((cat) => (
+                  <Card key={cat.id} className="hover:shadow-lg transition-shadow">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center gap-3">
+                        {cat.iconUrl && cat.iconUrl !== "phuong" ? (
+                          <img src={cat.iconUrl} alt={cat.name} className="w-12 h-12 rounded-lg object-cover" />
+                        ) : (
+                          <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center flex text-xs font-medium">
+                            {cat.name.charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                        <div>
+                          <CardTitle className="text-lg">{cat.name}</CardTitle>
+                          <p className="text-sm text-muted-foreground">{cat.slug}</p>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex justify-between items-center">
+                        <Badge variant={cat.isActive ? "default" : "secondary"}>
+                          {cat.isActive ? "Hoạt động" : "Tắt"}
                         </Badge>
-                      </td>
-                      <td className="py-4 px-4 text-sm font-semibold text-accent">{product.price}</td>
-                      <td className="py-4 px-4 text-sm">
-                        <span className={product.stock < 100 ? "text-orange-500 font-semibold" : "text-foreground"}>
-                          {product.stock}
-                        </span>
-                      </td>
-                      <td className="py-4 px-4 text-sm text-foreground">{product.sales}</td>
-                      <td className="py-4 px-4 text-sm">
-                        <div className="flex gap-2">
-                          <Button variant="ghost" size="icon">
-                            <Eye size={16} />
+                        <div className="flex gap-1">
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <Edit2 className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal size={16} />
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive"
+                            onClick={() => handleDeleteCategory(cat.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   )

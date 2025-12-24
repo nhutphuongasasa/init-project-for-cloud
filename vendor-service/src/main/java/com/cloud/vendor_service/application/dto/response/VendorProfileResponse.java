@@ -16,7 +16,7 @@ public class VendorProfileResponse {
     private String slug;
     private String logoUrl;
     private String description;
-    private String ownerUserId;
+    // private String ownerUserId;
     private VendorStatus status;
     private Instant joinedAt;
     private ProfileResponse profile;

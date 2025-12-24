@@ -23,16 +23,13 @@ export function Sidebar({ userType }: SidebarProps) {
         { label: "Dashboard", icon: LayoutGrid, href: "/admin/dashboard" },
         { label: "Vendors", icon: Users, href: "/admin/vendors" },
         { label: "Products", icon: Package, href: "/admin/products" },
-        { label: "Warehouses", icon: Warehouse, href: "/admin/warehouses" },
         { label: "Orders", icon: ShoppingCart, href: "/admin/orders" },
-        { label: "Settings", icon: Settings, href: "/admin/settings" },
       ]
     : [
         { label: "Dashboard", icon: LayoutGrid, href: "/vendor/dashboard" },
         { label: "Products", icon: Package, href: "/vendor/products" },
-        { label: "Inventory", icon: Warehouse, href: "/vendor/inventory" },
+        // { label: "Reports", icon: Warehouse, href: "/vendor/reports" },
         { label: "Orders", icon: ShoppingCart, href: "/vendor/orders" },
-        { label: "Settings", icon: Settings, href: "/vendor/settings" },
       ];
 
   const handleLogout = () => {
