@@ -1,4 +1,4 @@
-
+-- thuc hien them table error
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 CREATE TABLE warehouses (
@@ -23,7 +23,7 @@ CREATE TABLE inventory_items (
 );
 
 CREATE INDEX idx_inventory_vendor ON inventory_items(vendor_id);
-CREATE INDEX idx_inventory_warehouse ON inventory_items(warehouse_id);
+CREATE INDEX idx_inventory_item_warehouse ON inventory_items(product_variant_id, warehouse_id);
 
 CREATE TABLE stock_movements (
     id                 UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -31,7 +31,8 @@ CREATE TABLE stock_movements (
     warehouse_id       UUID NOT NULL,
     vendor_id          UUID NOT NULL,
     type               VARCHAR(30) NOT NULL,
-    quantity           INT NOT NULL,
+    before_quantity    INT NOT NULL,
+    after_quantity    INT NOT NULL,
     reference_type     VARCHAR(50),
     notes              TEXT,
     created_by         VARCHAR(100),

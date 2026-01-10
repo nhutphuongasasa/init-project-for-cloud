@@ -1,5 +1,6 @@
 version: '3.9'
 
+
 services:
   # nacosDB:
   #   image: mysql:8.0
@@ -16,7 +17,8 @@ services:
   #   networks:
   #     - app-network
   #   restart: unless-stopped
-    
+        # API routes
+
   
   # # =============================================
   # # NACOS (Service Discovery & Config Center)
@@ -211,17 +213,17 @@ services:
   # =============================================
   # ZIPKIN
   # =============================================
-  zipkin:
-    image: openzipkin/zipkin
-    container_name: zipkin
-    ports:
-      - "9411:9411"
-    environment:
-      - STORAGE_TYPE=mem
-      - JAVA_OPTS=-Xms512m -Xmx512m
-    networks:
-      - app-network
-    restart: unless-stopped
+  # zipkin:
+  #   image: openzipkin/zipkin
+  #   container_name: zipkin
+  #   ports:
+  #     - "9411:9411"
+  #   environment:
+  #     - STORAGE_TYPE=mem
+  #     - JAVA_OPTS=-Xms512m -Xmx512m
+  #   networks:
+  #     - app-network
+  #   restart: unless-stopped
 
 networks:
   app-network:

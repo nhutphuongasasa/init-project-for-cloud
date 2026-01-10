@@ -18,6 +18,7 @@ public class ImportJobService {
 
     private final ImportJobRepository importJobRepository;
     private final JwtUtils jwtUtils;
+    
 
     public ImportJob createImportJob(String fileName) {
         ImportJob importJob = ImportJob.builder()
@@ -58,7 +59,6 @@ public class ImportJobService {
         importJobRepository.save(job);
     }
 
-    // HÀM MỚI 2: Bắt đầu job (set RUNNING + startedAt + totalRows)
     public void startJob(UUID jobId, long totalRows) {
         ImportJob job = getJob(jobId);
         job.setStatus(ImportStatus.RUNNING);

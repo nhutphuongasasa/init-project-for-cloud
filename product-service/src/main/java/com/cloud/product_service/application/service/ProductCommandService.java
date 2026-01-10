@@ -61,8 +61,10 @@ public class ProductCommandService {
     public void updateBasicInfo(Product product, ProductImportRow row, ImportResult result){
         
     }
+
+
     
-    public void createNewProductWithVariants(ExcelCreateProductDto excelDto){
+    public void importProductFromExcel(ExcelCreateProductDto excelDto){
         ProductImportRow first = excelDto.getRows().get(0);
         Row firstRow = first.getRow();
         ImportResult result = excelDto.getResult();
@@ -71,7 +73,7 @@ public class ProductCommandService {
         Category category = categoryService.getCategoryEntityBySlug(
             excelUtils.getStringCellValue(
                 firstRow, 
-                ProductColumn.CATEGORY_SLUG.index()
+                ProductColumn.CATEGORY.index()
             )
         );
 
@@ -85,8 +87,8 @@ public class ProductCommandService {
 
         //init product
         Product product = Product.builder()
-            .name(excelUtils.getStringCellValue(firstRow, ProductColumn.NAME.index()))
-            .slug(skuHelper.generateSlug(excelUtils.getStringCellValue(firstRow, ProductColumn.NAME.index())))
+            .name(excelUtils.getStringCellValue(firstRow, ProductColumn.PRODUCT_NAME.index()))
+            .slug(skuHelper.generateSlug(excelUtils.getStringCellValue(firstRow, ProductColumn.PRODUCT_NAME.index())))
             .description(excelUtils.getStringCellValue(firstRow, ProductColumn.DESCRIPTION.index()))
             .status(ProductStatus.DRAFT)
             .productCode(excelDto.getProductCode())

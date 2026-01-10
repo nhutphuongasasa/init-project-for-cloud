@@ -7,7 +7,6 @@ import com.cloud.order_service.application.dto.event.InboundCompletedEvent;
 import com.cloud.order_service.application.dto.event.OrderApprovedEvent;
 import com.cloud.order_service.application.dto.event.OrderCancelledEvent;
 import com.cloud.order_service.application.dto.event.OrderShippedEvent;
-import com.cloud.order_service.application.dto.request.OrderInboundRequest;
 
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;

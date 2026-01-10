@@ -8,6 +8,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import javax.print.DocFlavor.STRING;
+
 import org.hibernate.annotations.UuidGenerator;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
@@ -69,6 +71,18 @@ public class FulfillmentOrder {
 
     @Column(name = "cancelled_at")
     private Instant cancelledAt;
+
+    @Column(name = "failure_reason")
+    private String failureReason;
+
+    @Column(name = "failure_message")
+    private String failureMessage;
+
+    @Column(name = "failure_step")
+    private String failureStep;
+
+    @Column(name = "failed_at")
+    private Instant failedAt;
 
     @Column(name = "created_by", nullable = false)
     private UUID createdBy;

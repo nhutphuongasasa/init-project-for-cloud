@@ -12,6 +12,7 @@ import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.cloud.order_service.application.dto.OrphanCheckResult;
 import com.cloud.order_service.application.dto.event.InboundCompletedEvent;
 import com.cloud.order_service.application.dto.event.InboundItemEvent;
 import com.cloud.order_service.application.dto.event.OrderApprovedEvent;
@@ -107,6 +108,7 @@ public class OrderCommandService {
         return mapper.toResponse(saved);
     }
 
+    @Transactional
     public OrderDetailResponse updatePickedQuantity(Long fulfillmentOrderDetailsId, int quantityPick) {
         FulfillmentOrderDetail detail = detailRepo.findById(fulfillmentOrderDetailsId)
             .orElseThrow(() -> new FulfillmentOrderNotFoundException());
@@ -153,7 +155,7 @@ public class OrderCommandService {
                     )
                     .collect(Collectors.toList())
             )
-            .build();   // ← Quan trọng
+            .build();
 
         eventPublisher.publishApprovedEvent(event);
 
@@ -199,7 +201,7 @@ public class OrderCommandService {
         return mapper.toResponse(saved);
     }
 
-@Transactional
+    @Transactional
     public OrderResponse cancelOrder(UUID orderId, UUID vendorId, CancelOrderRequest request) {
         FulfillmentOrder order = getAndLock(orderId);
 
@@ -235,36 +237,36 @@ public class OrderCommandService {
 
 
     @Transactional
-public OrderResponse completePicking(UUID orderId, CompletePickingRequest request) {
-    RLock lock = redisson.getLock(LOCK_PREFIX + orderId);
-    lock.lock(30, TimeUnit.SECONDS);
+    public OrderResponse completePicking(UUID orderId, CompletePickingRequest request) {
+        RLock lock = redisson.getLock(LOCK_PREFIX + orderId);
+        lock.lock(30, TimeUnit.SECONDS);
 
-    try {
-        FulfillmentOrder order = orderRepo.findById(orderId)
-            .orElseThrow(() -> new FulfillmentOrderNotFoundException());
-
-        if (order.getStatus() != OrderStatus.PICKING) {
-            throw new InvalidOrderCodeException("Phải ở trạng thái PICKING");
-        }
-
-        request.getItems().forEach(item -> {
-            FulfillmentOrderDetail detail = detailRepo.findById(item.getDetailId())
+        try {
+            FulfillmentOrder order = orderRepo.findById(orderId)
                 .orElseThrow(() -> new FulfillmentOrderNotFoundException());
-            detail.setQuantityPicked(item.getQuantityPicked());
-            detail.setNotes(item.getNotes());
-        });
 
-        order.setStatus(OrderStatus.PICKED);
-        order.setUpdatedAt(Instant.now());
+            if (order.getStatus() != OrderStatus.PICKING) {
+                throw new InvalidOrderCodeException("Phải ở trạng thái PICKING");
+            }
 
-        return mapper.toResponse(orderRepo.save(order));
+            request.getItems().forEach(item -> {
+                FulfillmentOrderDetail detail = detailRepo.findById(item.getDetailId())
+                    .orElseThrow(() -> new FulfillmentOrderNotFoundException());
+                detail.setQuantityPicked(item.getQuantityPicked());
+                detail.setNotes(item.getNotes());
+            });
 
-    } finally {
-        if (lock.isHeldByCurrentThread()) {
-            lock.unlock();
+            order.setStatus(OrderStatus.PICKED);
+            order.setUpdatedAt(Instant.now());
+
+            return mapper.toResponse(orderRepo.save(order));
+
+        } finally {
+            if (lock.isHeldByCurrentThread()) {
+                lock.unlock();
+            }
         }
     }
-}
 
     @Transactional
     public OrderResponse startPicking(UUID orderId) {
@@ -283,6 +285,7 @@ public OrderResponse completePicking(UUID orderId, CompletePickingRequest reques
         return changeStatusWithLock(orderId, OrderStatus.PACKED, o -> o.setPackedAt(Instant.now()));
     }
 
+    //kiem tra lai
     @Transactional
     public OrderResponse changeStatusWithLock(UUID orderId, OrderStatus newStatus, Consumer<FulfillmentOrder> extraAction) {
         RLock lock = redisson.getLock(LOCK_PREFIX + orderId);
@@ -398,6 +401,23 @@ public OrderResponse completePicking(UUID orderId, CompletePickingRequest reques
         return changeInboundStatus(inboundId, InboundStatus.CANCELLED, null);
     }
 
+    public List<OrphanCheckResult> searchOrphanReserved(List<OrphanCheckResult> checkList){
+        List<Object[]> pairs = checkList.stream()
+            .map(item -> new Object[]{
+                item.getProductVariantId(), 
+                item.getWarehouseId()
+            })
+            .toList();
+
+        List<Object[]> rawResult = orderRepo.findPendingBatch(pairs);
+
+        return rawResult.stream()
+            .map(arr -> OrphanCheckResult.builder()
+                            .productVariantId((UUID)arr[0])
+                            .warehouseId((UUID)arr[1])
+                            .build()
+            ).toList();
+    }
 
     private InboundOrderResponse changeInboundStatus(UUID inboundId, InboundStatus newStatus, Consumer<InboundOrder> extra) {
         RLock lock = redisson.getLock(INBOUND_LOCK + inboundId);
@@ -441,10 +461,10 @@ public OrderResponse completePicking(UUID orderId, CompletePickingRequest reques
         }
     }
 
-    private FulfillmentOrder getOrderEntity(UUID id) {
-        return orderRepo.findById(id)
-            .orElseThrow(() -> new FulfillmentOrderNotFoundException());
-    }
+    // private FulfillmentOrder getOrderEntity(UUID id) {
+    //     return orderRepo.findById(id)
+    //         .orElseThrow(() -> new FulfillmentOrderNotFoundException());
+    // }
 
     private boolean isValidTransition(OrderStatus from, OrderStatus to) {
         return switch (from) {
@@ -458,7 +478,7 @@ public OrderResponse completePicking(UUID orderId, CompletePickingRequest reques
         };
     }
 
-private boolean isValidInboundTransition(InboundStatus from, InboundStatus to) {
+    private boolean isValidInboundTransition(InboundStatus from, InboundStatus to) {
         return switch (from) {
             case DRAFT -> to == InboundStatus.CONFIRMED || to == InboundStatus.CANCELLED;
             case CONFIRMED -> to == InboundStatus.RECEIVING || to == InboundStatus.CANCELLED;
@@ -469,15 +489,15 @@ private boolean isValidInboundTransition(InboundStatus from, InboundStatus to) {
 
     private String generateInboundCode(UUID vendorId) {
 
-    String prefix = "IN";
-    String datePart = java.time.LocalDate.now()
-            .format(java.time.format.DateTimeFormatter.ofPattern("yyMMdd"));
+        String prefix = "IN";
+        String datePart = java.time.LocalDate.now()
+                .format(java.time.format.DateTimeFormatter.ofPattern("yyMMdd"));
 
-    String vendorPart = vendorId.toString().replace("-", "").substring(0, 6).toUpperCase();
+        String vendorPart = vendorId.toString().replace("-", "").substring(0, 6).toUpperCase();
 
-    int randomNum = (int) (Math.random() * 10000);
-    String randomPart = String.format("%04d", randomNum);
+        int randomNum = (int) (Math.random() * 10000);
+        String randomPart = String.format("%04d", randomNum);
 
-    return prefix + datePart + vendorPart + randomPart;
-}
+        return prefix + datePart + vendorPart + randomPart;
+    }
 }

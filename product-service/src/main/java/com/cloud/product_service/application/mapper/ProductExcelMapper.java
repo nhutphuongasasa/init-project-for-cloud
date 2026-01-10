@@ -66,8 +66,8 @@ public class ProductExcelMapper {
         return ProductCreateRequest.builder()
             // .productImages(images)
             .productVariant(List.of(variantRequest))
-            .name(values.get(ProductColumn.NAME.index()))
-            .slug(values.get(ProductColumn.SLUG.index()))
+            .name(values.get(ProductColumn.PRODUCT_NAME.index()))
+            .slug(values.get(ProductColumn.PRODUCT_CODE.index()))
             .description(values.get(ProductColumn.DESCRIPTION.index()))
             .categoryId(categoryId)
             .build();

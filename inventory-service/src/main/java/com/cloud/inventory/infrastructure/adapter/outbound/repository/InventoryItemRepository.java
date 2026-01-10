@@ -30,31 +30,33 @@ public interface InventoryItemRepository extends JpaRepository<InventoryItem, In
 
     List<InventoryItem> findByVendorId(UUID vendorId);
 
-@Query("""
-    SELECT i FROM InventoryItem i
-    JOIN i.warehouse w
-    WHERE i.vendorId = :vendorId
-      AND (:keyword IS NULL OR :keyword = '') 
-      AND (COALESCE(:warehouseIds) IS NULL OR w.id IN :warehouseIds)
-      AND (:minStock IS NULL OR i.quantityAvailable >= :minStock)
-      AND (:maxStock IS NULL OR i.quantityAvailable <= :maxStock)
-    ORDER BY i.lastUpdated DESC
-    """)
-Page<InventoryItem> searchStock(
-    @Param("vendorId") UUID vendorId,
-    @Param("keyword") String keyword,
-    @Param("warehouseIds") List<UUID> warehouseIds,
-    @Param("minStock") Integer minStock,
-    @Param("maxStock") Integer maxStock,
-    Pageable pageable);
+    Page<InventoryItem> findByQuantityReservedGreaterThanWithLock(Integer threshold, Pageable pageable);
 
-@Query("""
-    SELECT DISTINCT new com.cloud.inventory.application.dto.WarehouseDto(
-        w.id, w.code, w.name, w.address
-    )
-    FROM InventoryItem i 
-    JOIN i.warehouse w 
-    WHERE i.vendorId = :vendorId
-    """)
-List<WarehouseDto> findDistinctWarehouseByVendorId(@Param("vendorId") UUID vendorId);
+    @Query("""
+        SELECT i FROM InventoryItem i
+        JOIN i.warehouse w
+        WHERE i.vendorId = :vendorId
+        AND (:keyword IS NULL OR :keyword = '') 
+        AND (COALESCE(:warehouseIds) IS NULL OR w.id IN :warehouseIds)
+        AND (:minStock IS NULL OR i.quantityAvailable >= :minStock)
+        AND (:maxStock IS NULL OR i.quantityAvailable <= :maxStock)
+        ORDER BY i.lastUpdated DESC
+        """)
+    Page<InventoryItem> searchStock(
+        @Param("vendorId") UUID vendorId,
+        @Param("keyword") String keyword,
+        @Param("warehouseIds") List<UUID> warehouseIds,
+        @Param("minStock") Integer minStock,
+        @Param("maxStock") Integer maxStock,
+        Pageable pageable);
+
+    @Query("""
+        SELECT DISTINCT new com.cloud.inventory.application.dto.WarehouseDto(
+            w.id, w.code, w.name, w.address
+        )
+        FROM InventoryItem i 
+        JOIN i.warehouse w 
+        WHERE i.vendorId = :vendorId
+        """)
+    List<WarehouseDto> findDistinctWarehouseByVendorId(@Param("vendorId") UUID vendorId);
 }

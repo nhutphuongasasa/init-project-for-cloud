@@ -85,10 +85,10 @@ management:
     sampling:
       probability: 1.0
   
-  zipkin:
-    tracing:
-      endpoint: http://zipkin:9411/api/v2/spans
-      connect-timeout: 1s
-      read-timeout: 5s
+  # zipkin:
+  #   tracing:
+  #     endpoint: http://zipkin:9411/api/v2/spans
+  #     connect-timeout: 1s
+  #     read-timeout: 5s
     
 # ================================tracing & health ===============================

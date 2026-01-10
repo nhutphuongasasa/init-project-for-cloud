@@ -23,7 +23,6 @@ import com.cloud.inventory.domain.enums.StockMovementType;
 @Table(name = "stock_movements")
 @NoArgsConstructor
 @AllArgsConstructor
-@Access(AccessType.FIELD)
 @EntityListeners(AuditingEntityListener.class)
 public class StockMovement {
 
@@ -45,8 +44,11 @@ public class StockMovement {
     @Column(nullable = false)
     private StockMovementType type;
 
-    @Column(nullable = false)
-    private Integer quantity;
+    @Column(name = "before_quantity",nullable = false)
+    private Integer beforeQuantity;
+
+    @Column(name = "after_quantity",nullable = false)
+    private Integer afterQuantity;
 
     @Column(name = "reference_type", length = 50)
     private String referenceType;

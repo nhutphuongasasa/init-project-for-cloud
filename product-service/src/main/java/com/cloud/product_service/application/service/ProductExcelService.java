@@ -54,9 +54,11 @@ public class ProductExcelService {
 
     @SneakyThrows
     public byte[] downFileTemplate() {
-        try (InputStream is = getClass().getClassLoader()
-                .getResourceAsStream("template/product_template.xlsx");
-             Workbook workbook = WorkbookFactory.create(is)) {
+        //try se tu dong close tai nguyen
+        try (
+            InputStream is = getClass().getClassLoader().getResourceAsStream("template/product_template.xlsx");
+            Workbook workbook = WorkbookFactory.create(is)
+        ) {
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             workbook.write(out);
             return out.toByteArray();
@@ -66,7 +68,7 @@ public class ProductExcelService {
     @Transactional
     @Async("taskExecutor")
     public CompletableFuture<ImportResult> importFromFile(MultipartFile file, ImportMode mode) {
-        // 1. Tạo job
+
         ImportJob importJob = importJobService.createImportJob(file.getOriginalFilename());
         ImportResult result = new ImportResult();
         result.setJobId(importJob.getId());
@@ -75,18 +77,22 @@ public class ProductExcelService {
         Map<Integer, String> attributeOptionsMap = new LinkedHashMap<>();
         long totalValidRows = 0;
 
-        // 2. Đọc file + đếm dòng hợp lệ
-        try (InputStream is = file.getInputStream();
-             Workbook workbook = WorkbookFactory.create(is)) {
-
+        try (
+            //khoi tao streaming 
+            InputStream is = file.getInputStream();
+            Workbook workbook = WorkbookFactory.create(is)
+        ) {
             Sheet sheet = workbook.getSheetAt(0);
+            //gan cac header vao map
             attributeOptionsMap = initAttributeOptionsMap(sheet.getRow(0));
 
+            //duyet cai sheet dau tien  vua lay ra
             for (Row row : sheet) {
+                //bo qua cai row dau tien do la header
                 if (row.getRowNum() == 0) continue;
 
                 String code = excelUtils.getStringCellValue(row, ProductColumn.PRODUCT_CODE.index())
-                        .trim().toUpperCase();
+                    .trim().toUpperCase();
                 if (StringUtils.isBlank(code)) continue;
 
                 totalValidRows++;
@@ -106,10 +112,11 @@ public class ProductExcelService {
         entityManager.unwrap(Session.class).setJdbcBatchSize(BATCH_SIZE);
 
         long processedRows = 0;
-        long successRows = 0;
-        long failedRows = 0;
+        // long successRows = 0;
+        // long failedRows = 0;
 
         try {
+            //duyet qua cac phan tu product da duoc go nhom trong map
             for (Map.Entry<String, List<ProductImportRow>> entry : groupMap.entrySet()) {
                 List<ProductImportRow> rows = entry.getValue();
 
@@ -122,21 +129,9 @@ public class ProductExcelService {
                             .attributeOptionsMap(attributeOptionsMap)
                             .build();
 
-                    processProductGroup(excelDto);
-
-                    // Đếm thành công/thất bại theo lỗi trong row
-                    long errorInGroup = rows.stream()
-                            .filter(r -> r.getErrors() != null && !r.getErrors().isEmpty())
-                            .count();
-
-                    if (errorInGroup == 0) {
-                        successRows += rows.size();
-                    } else {
-                        failedRows += rows.size();
-                    }
+                    processImportProductGroup(excelDto);
 
                 } catch (Exception e) {
-                    failedRows += rows.size();
                     rows.forEach(r -> r.addError("Hệ thống", "Lỗi server: " + e.getMessage()));
                     result.addFailedRows(rows);
                     log.error("Lỗi xử lý sản phẩm: {}", entry.getKey(), e);
@@ -150,8 +145,8 @@ public class ProductExcelService {
                             importJob.getId(),
                             processedRows,
                             totalValidRows,
-                            successRows,
-                            failedRows
+                            0,
+                            0
                     );
                 }
 
@@ -173,15 +168,15 @@ public class ProductExcelService {
             entityManager.clear();
         }
 
-        log.info("Import hoàn tất - Job {}: {}/{} thành công, {} lỗi",
-                importJob.getId(), successRows, totalValidRows, failedRows);
+        log.info("Import hoàn tất - Job");
 
         return CompletableFuture.completedFuture(result);
     }
 
+    //lay gia tri cac header vao map
     private Map<Integer, String> initAttributeOptionsMap(Row headerRow) {
         Map<Integer, String> map = new LinkedHashMap<>();
-        for (int i = ProductColumn.ATTRIBUTES_START.index(); i < ProductColumn.ATTRIBUTES_END.index(); i++) {
+        for (int i = ProductColumn.ATTRIBUTES_START.index(); i <= ProductColumn.ATTRIBUTES_END.index(); i++) {
             String value = excelUtils.getStringCellValue(headerRow, i);
             if (!StringUtils.isBlank(value)) {
                 map.put(i, value.trim());
@@ -190,32 +185,35 @@ public class ProductExcelService {
         return map;
     }
 
-    private void processProductGroup(ExcelCreateProductDto excelDto) {
-        Optional<Product> existingProductOpt = productRepository
+    //thuc hien  import vao db theo mode
+    private void processImportProductGroup(ExcelCreateProductDto excelDto) {
+        Optional<Product> existingProduct = productRepository
                 .findByProductCodeAndVendorId(excelDto.getProductCode(), jwtUtils.getCurrentUserId());
-        boolean isNewProduct = existingProductOpt.isEmpty();
+        boolean isNewProduct = existingProduct.isEmpty();
 
-        if (excelDto.getMode() == ImportMode.CREATE_ONLY && !isNewProduct) {
+        ImportMode mode = excelDto.getMode();
+
+        if (mode == ImportMode.CREATE_ONLY && !isNewProduct) {
             excelDto.getRows().forEach(r -> r.addError("Mã SP", "Đã tồn tại → chỉ tạo mới"));
             excelDto.getResult().addFailedRows(excelDto.getRows());
             return;
         }
 
-        if (excelDto.getMode() == ImportMode.UPDATE_BASIC_ONLY && isNewProduct) {
+        if (mode == ImportMode.UPDATE_BASIC_ONLY && isNewProduct) {
             excelDto.getRows().forEach(r -> r.addError("Mã SP", "Chưa tồn tại → chỉ cập nhật"));
             excelDto.getResult().addFailedRows(excelDto.getRows());
             return;
         }
 
         if (isNewProduct) {
-            productCommandService.createNewProductWithVariants(excelDto);
+            productCommandService.importProductFromExcel(excelDto);
         } else {
-            productCommandService.updateBasicInfo(existingProductOpt.get(), excelDto.getRows().get(0), excelDto.getResult());
-            if (excelDto.getRows().size() > 1) {
-                excelDto.getRows().subList(1, excelDto.getRows().size())
-                        .forEach(r -> r.addError("Variant", "Chỉ cập nhật cơ bản → bỏ qua variant"));
-                excelDto.getResult().addFailedRows(excelDto.getRows().subList(1, excelDto.getRows().size()));
-            }
+            //thuc hien update basic info
+            // if (excelDto.getRows().size() > 1) {
+                // excelDto.getRows().subList(1, excelDto.getRows().size())
+                        // .forEach(r -> r.addError("Variant", "Chỉ cập nhật cơ bản → bỏ qua variant"));
+                // excelDto.getResult().addFailedRows(excelDto.getRows().subList(1, excelDto.getRows().size()));
+            // }
         }
     }
 }

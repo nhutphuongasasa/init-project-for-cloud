@@ -46,7 +46,6 @@ public class InventoryQueryService {
 
         UUID vendorId = jwtUtils.getCurrentUserId();
 
-        // Tạo cache key unique dựa trên vendor + danh sách variantIds (sắp xếp để cùng input luôn cùng key)
         String variantIdsHash = variantIds.stream()
             .sorted()
             .map(UUID::toString)

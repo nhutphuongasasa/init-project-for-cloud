@@ -1,6 +1,5 @@
-package com.cloud.inventory.application.kafka.event;
+package com.cloud.inventory.application.dto.request;
 
-import java.util.List;
 import java.util.UUID;
 
 import lombok.AllArgsConstructor;
@@ -9,15 +8,12 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-@Builder
 @Getter
+@Builder
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class OrderApprovedEvent {
-    private UUID orderId;
-    private String orderCode;
+public class OrphanCheckResult {
+    private UUID productVariantId;
     private UUID warehouseId;
-    private UUID vendorId;
-    private List<ReserveItem> items;
 }

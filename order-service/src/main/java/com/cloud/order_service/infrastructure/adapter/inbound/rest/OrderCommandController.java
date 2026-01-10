@@ -1,6 +1,7 @@
 package com.cloud.order_service.infrastructure.adapter.inbound.rest;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.cloud.order_service.application.dto.OrphanCheckResult;
 import com.cloud.order_service.application.dto.request.ApproveOrderRequest;
 import com.cloud.order_service.application.dto.request.CancelOrderRequest;
 import com.cloud.order_service.application.dto.request.CompletePickingRequest;
@@ -28,7 +30,6 @@ import com.cloud.order_service.application.dto.response.OrderResponse;
 import com.cloud.order_service.application.service.OrderCommandService;
 import com.cloud.order_service.common.response.FormResponse;
 
-import brave.Response;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
@@ -39,6 +40,19 @@ import lombok.RequiredArgsConstructor;
 public class OrderCommandController {
     private final OrderCommandService orderCommandService;
 
+    @PostMapping("/cleanupOrphanReserved")
+    public ResponseEntity<FormResponse<List<OrphanCheckResult>>> checkListOrphanReserved(
+        @RequestBody List<OrphanCheckResult> request
+    ){
+        List<OrphanCheckResult> result = orderCommandService.searchOrphanReserved(request);
+
+        return ResponseEntity.ok(FormResponse.<List<OrphanCheckResult>>builder()
+                    .data(result)
+                    .message("check orphan sucessfully")
+                    .timestamp(Instant.now())
+                    .build()
+        );
+    }
 
     @PostMapping
     public ResponseEntity<FormResponse<OrderResponse>> createOrder(

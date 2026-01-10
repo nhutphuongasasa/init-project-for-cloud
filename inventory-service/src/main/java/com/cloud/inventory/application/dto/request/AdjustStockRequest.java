@@ -10,7 +10,7 @@ import com.cloud.inventory.domain.enums.StockMovementType;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class CreateStockMovementRequest {
+public class AdjustStockRequest implements StockMovementRequest{
 
     @NotNull(message = "Product variant ID is required")
     private UUID productVariantId;
@@ -27,11 +27,10 @@ public class CreateStockMovementRequest {
     @NotNull(message = "Quantity is required")
     private Integer quantity;
 
-    @Size(max = 50, message = "Reference type must be at most 50 characters")
-    private String referenceType;
-
     @Size(max = 1000, message = "Notes must be at most 1000 characters")
     private String notes;
+
+    private Integer delta;
 
     @NotBlank(message = "CreatedBy is required")
     private String createdBy;

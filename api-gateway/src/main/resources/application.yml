@@ -1,9 +1,9 @@
 # ------------------- SERVER (Netty) -------------------
 server:
   port: 8000
-  netty:
-    connection-timeout: 2s
-    idle-timeout: 0s
+  # netty:
+    # connection-timeout: 2s
+    # idle-timeout: 0s
 
 # ------------------- REDIRECT URL -------------------
 redirect:
@@ -20,6 +20,12 @@ spring:
 
   cloud:
     gateway:
+      httpclient:
+        connect-timeout: 2000 # 2 giây
+        response-timeout: 5s
+        pool:
+          type: elastic
+          idle-timeout: 30s
       default-filters:
         - TokenRelay=,includeAccessToken=true
       discovery:
@@ -55,6 +61,14 @@ spring:
           uri: lb://order-service
           predicates:
             - Path=/api/order/**
+          filters:
+            - name: StripPrefix
+              args:
+                parts: 2
+        - id: auth-service
+          uri: lb://auth-service
+          predicates:
+            - Path=/api/auth/**
           filters:
             - name: StripPrefix
               args:
@@ -182,11 +196,11 @@ management:
     sampling:
       probability: 1.0 
       
-  zipkin:
-    tracing:
-      endpoint: http://zipkin:9411/api/v2/spans
-      connect-timeout: 1s
-      read-timeout: 5s
+  # zipkin:
+  #   tracing:
+  #     endpoint: http://zipkin:9411/api/v2/spans
+  #     connect-timeout: 1s
+  #     read-timeout: 5s
 
 # phuongasasa:
 #   upstash:

@@ -33,7 +33,19 @@ spring:
           com.cloud.order_service.application.dto.event.OrderShippedEvent:com.cloud.inventory.application.kafka.event.OrderShippedEvent,
           com.cloud.order_service.application.dto.event.InboundCompletedEvent:com.cloud.inventory.application.kafka.event.OrderInboundRequest
 
-
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retry: 10
+      retry-backoff-ms: 1000
+      batch-size: 16384           
+      linger-ms: 5               
+      buffer-memory: 33554432
+      enable-idempotence: true
+      properties:
+        request.timeout.ms: 60000
+        delivery.timeout.ms: 120000
 
     listener:
       auto-startup: true
@@ -114,10 +126,10 @@ management:
     sampling:
       probability: 1.0
   
-  zipkin:
-    tracing:
-      endpoint: http://zipkin:9411/api/v2/spans
-      connect-timeout: 1s
-      read-timeout: 5s
+  # zipkin:
+  #   tracing:
+  #     endpoint: http://zipkin:9411/api/v2/spans
+  #     connect-timeout: 1s
+  #     read-timeout: 5s
     
 # ================================tracing & health ===============================

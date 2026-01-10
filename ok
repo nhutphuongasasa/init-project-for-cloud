@@ -1,714 +1,104 @@
--- ================================================
--- 1. VENDOR SERVICE – vendor_db (độc lập hoàn toàn)
--- ================================================
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+vendor them vendor_member
 
-CREATE TYPE vendor_status AS ENUM ('PENDING','ACTIVE','SUSPENDED','BANNED','REJECTED');
+phan quyen bnag authority
 
-CREATE TABLE IF NOT EXISTS vendors (
-    id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    name            VARCHAR(255) NOT NULL,
-    slug            VARCHAR(100) UNIQUE NOT NULL,
-    logo_url        VARCHAR(500),
-    description     VARCHAR(500),
-    owner_user_id   UUID NOT NULL, -- Keycloak user_id
-    status          vendor_status DEFAULT 'PENDING',
-    -- rating          DECIMAL(3,2) DEFAULT 0.00,
-    -- total_sales     BIGINT DEFAULT 0,
-    joined_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+Chức năng,OWNER,ADMIN,STAFF,PRODUCT_EDITOR,WAREHOUSE_PICKER,VIEWER
+"Vendor info & profile (xem/sửa thông tin shop, logo, address, tax...)",Full (CRUD),Full (CRUD),View only,View only,View only,View only
+Mời/thêm/xóa thành viên shop,Yes,Yes,No,No,No,No
+Product CRUD,,,,,,
+- Xem danh sách sản phẩm,Yes,Yes,Yes,Yes,Yes (nếu cần),Yes
+- Thêm sản phẩm mới,Yes,Yes,Yes,Yes,No,No
+- Sửa sản phẩm/variant/giá,Yes,Yes,Yes,Yes,No,No
+- Xóa/ngừng bán sản phẩm,Yes,Yes,No,Yes (tùy config),No,No
+- Import/Export sản phẩm,Yes,Yes,Yes,Yes,No,No
+Inventory & Warehouse,,,,,,
+- Xem tồn kho tổng thể,Yes,Yes,Yes,Yes,Yes,Yes
+- Xem chi tiết tồn theo vị trí,Yes,Yes,Yes,No,Yes,Yes
+- Nhập kho (Inbound order),Yes,Yes,Yes,No,Yes,No
+- Xác nhận nhận hàng,Yes,Yes,Yes,No,Yes,No
+- Xuất kho / Fulfillment order,Yes,Yes,Yes,No,Yes,View only
+- Pick & Pack hàng,Yes,Yes,Yes,No,Yes,No
+- Điều chỉnh tồn kho thủ công,Yes,Yes,No,No,Có thể (tùy),No
+- Xem lịch sử stock movement,Yes,Yes,Yes,Yes,Yes,Yes
+Đơn hàng & Fulfillment,,,,,,
+- Xem danh sách đơn,Yes,Yes,Yes,No,Yes (đơn cần xuất),Yes
+"- Xử lý đơn (confirm, cancel...)",Yes,Yes,Yes,No,No,No
+- In vận đơn / packing list,Yes,Yes,Yes,No,Yes,No
+
+db cua auth-service
+-- Bảng người dùng (chỉ từ social login)
+CREATE TABLE users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    provider VARCHAR(50) NOT NULL,                  -- 'google', 'facebook', 'apple', 'microsoft', etc.
+    provider_id VARCHAR(255) NOT NULL,              -- ID từ provider
+    email VARCHAR(255) NOT NULL,
+    full_name VARCHAR(255),
+    avatar_url VARCHAR(500),
+    email_verified BOOLEAN DEFAULT TRUE,
+    last_login TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    UNIQUE(provider, provider_id),
+    UNIQUE(email)                                   -- Optional: tránh 1 email đăng ký nhiều provider
 );
 
-CREATE INDEX IF NOT EXISTS idx_owner ON vendors(owner_user_id);
-CREATE INDEX IF NOT EXISTS idx_slug ON vendors(slug);
-CREATE INDEX IF NOT EXISTS idx_status ON vendors(status);
+CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX idx_users_provider ON users(provider, provider_id);
 
--- Bảng vendor_profiles
-CREATE TABLE IF NOT EXISTS vendor_profiles (
-    vendor_id   UUID PRIMARY KEY,
-    description TEXT,
-    address     TEXT,
-    phone       VARCHAR(20) UNIQUE,
-    email       VARCHAR(255) UNIQUE NOT NULL,
-    tax_code    VARCHAR(50),
-    website_url VARCHAR(255),
-    social_links JSONB DEFAULT '{}'::jsonb,
-    updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (vendor_id) REFERENCES vendors(id) ON DELETE CASCADE
+-- Bảng roles toàn hệ thống
+CREATE TABLE roles (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(100) UNIQUE NOT NULL,              -- PLATFORM_ADMIN, VENDOR_OWNER, VENDOR_ADMIN, VENDOR_STAFF, VENDOR_WAREHOUSE_PICKER, VENDOR_VIEWER
+    description TEXT
 );
 
-CREATE INDEX IF NOT EXISTS idx_email ON vendor_profiles(email);
-
-
--- ================================================
--- 2. PRODUCT SERVICE – product_db
--- ================================================
-
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
-CREATE TYPE product_status AS ENUM ('DRAFT', 'ACTIVE', 'INACTIVE', 'BANNED');
-CREATE TYPE import_status AS ENUM ('PENDING', 'RUNNING', 'COMPLETED', 'FAILED');
-
-CREATE TABLE IF NOT EXISTS categories (
-    id         UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    name       VARCHAR(255) NOT NULL,
-    parent_id  UUID,
-    slug       VARCHAR(255),
-    icon_url   VARCHAR(500),
-    is_active  BOOLEAN DEFAULT TRUE,
-    FOREIGN KEY (parent_id) REFERENCES categories(id)
+-- Gán role cho user
+CREATE TABLE user_roles (
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    role_id UUID REFERENCES roles(id) ON DELETE CASCADE,
+    PRIMARY KEY (user_id, role_id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_categories_name ON categories(name);
-CREATE INDEX IF NOT EXISTS idx_categories_slug ON categories(slug);
-CREATE INDEX IF NOT EXISTS idx_categories_active ON categories(is_active);
-CREATE INDEX IF NOT EXISTS idx_categories_parent ON categories(parent_id);
-
-CREATE TABLE products (
-    id           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    vendor_id    UUID NOT NULL,
-    name         VARCHAR(255) NOT NULL,
-    description  TEXT,
-    product_code VARCHAR(70),
-    slug         VARCHAR(255) NOT NULL,
-    category_id  UUID,
-    status       product_status DEFAULT 'DRAFT',
-    created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT unique_slug UNIQUE (slug, vendor_id),
-    CONSTRAINT unique_product_code UNIQUE (product_code, vendor_id),
-    FOREIGN KEY (category_id) REFERENCES categories(id)
+-- Đăng ký các client OAuth2 (frontend + backend services)
+CREATE TABLE oauth2_registered_clients (
+    id VARCHAR(255) PRIMARY KEY,                    -- client_id
+    client_id_issued_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    client_secret VARCHAR(255),                     -- NULL nếu public client (frontend)
+    client_secret_expires_at TIMESTAMP,
+    client_name VARCHAR(255) NOT NULL,
+    client_authentication_methods TEXT NOT NULL,    -- 'client_secret_basic','none'
+    authorization_grant_types TEXT NOT NULL,        -- 'authorization_code','refresh_token','client_credentials'
+    redirect_uris TEXT,                             -- Chỉ cho frontend
+    post_logout_redirect_uris TEXT,
+    scopes TEXT NOT NULL,                           -- 'openid','profile','wms.read','inventory.manage',...
+    client_settings JSONB DEFAULT '{}',             -- requireProofKey, etc.
+    token_settings JSONB DEFAULT '{}'               -- accessTokenFormat: JWT, reuseRefreshTokens...
 );
 
-CREATE INDEX IF NOT EXISTS idx_products_vendor ON products(vendor_id);
-CREATE INDEX IF NOT EXISTS idx_products_category ON products(category_id);
-CREATE INDEX IF NOT EXISTS idx_products_status ON products(status);
-
-CREATE TABLE product_variants (
-    id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    product_id      UUID NOT NULL,
-    sku             VARCHAR(100) UNIQUE NOT NULL,
-    vendor_id       UUID NOT NULL,
-    price           DECIMAL(12,2) NOT NULL,
-    original_price  DECIMAL(12,2),
-    attributes      JSONB DEFAULT '{}',
-    weight_gram     INT DEFAULT 0,
-    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+-- Lưu authorization (code, token, consent) – theo chuẩn Spring Authorization Server
+CREATE TABLE oauth2_authorizations (
+    id VARCHAR(255) PRIMARY KEY,
+    registered_client_id VARCHAR(255) REFERENCES oauth2_registered_clients(id),
+    principal_name VARCHAR(255),                     -- user email hoặc sub
+    authorization_grant_type VARCHAR(100) NOT NULL,
+    attributes TEXT,
+    state VARCHAR(500),
+    authorization_code_value BYTEA,
+    authorization_code_issued_at TIMESTAMP,
+    authorization_code_expires_at TIMESTAMP,
+    access_token_value BYTEA,
+    access_token_issued_at TIMESTAMP,
+    access_token_expires_at TIMESTAMP,
+    access_token_scopes TEXT[],
+    refresh_token_value BYTEA,
+    refresh_token_issued_at TIMESTAMP,
+    refresh_token_expires_at TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS idx_variants_product ON product_variants(product_id);
-CREATE INDEX IF NOT EXISTS idx_variants_sku ON product_variants(sku);
-CREATE INDEX IF NOT EXISTS idx_variants_vendor ON product_variants(vendor_id);
-CREATE INDEX IF NOT EXISTS idx_variants_price ON product_variants(price);
-
-CREATE TABLE product_images (
-    id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    product_id  UUID,
-    url         VARCHAR(500) NOT NULL,
-    variant_id  UUID NOT NULL,
-    sort_order  INT DEFAULT 0,
-    is_main     BOOLEAN DEFAULT FALSE,
-    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
-    FOREIGN KEY (variant_id) REFERENCES product_variants(id) ON DELETE CASCADE
+CREATE TABLE oauth2_authorization_consents (
+    registered_client_id VARCHAR(255) REFERENCES oauth2_registered_clients(id),
+    principal_name VARCHAR(255),
+    authorities TEXT NOT NULL,                       -- scopes đã consent
+    PRIMARY KEY (registered_client_id, principal_name)
 );
-
-CREATE TABLE import_jobs (
-    id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    vendor_id       UUID NOT NULL,
-    file_name       VARCHAR(255) NOT NULL,
-    total_rows      BIGINT,
-    processed_rows  BIGINT DEFAULT 0,
-    success_rows    BIGINT DEFAULT 0,
-    failed_rows     BIGINT DEFAULT 0,
-    status          import_status DEFAULT 'PENDING',
-    started_at      TIMESTAMP,
-    finished_at     TIMESTAMP,
-    error_message   TEXT,
-    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX IF NOT EXISTS idx_import_jobs_vendor ON import_jobs(vendor_id);
--- ================================================
--- 3. INVENTORY SERVICE – inventory_db
--- ================================================
-CREATE TYPE stock_movement_type AS ENUM ('INBOUND','OUTBOUND','ADJUSTMENT','RETURN','TRANSFER');
-
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
-CREATE TABLE warehouses (
-    id         UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    code       VARCHAR(50) UNIQUE NOT NULL,
-    name       VARCHAR(255) NOT NULL,
-    address    TEXT,
-    is_active  BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE inventory_items (
-    product_variant_id UUID NOT NULL,
-    warehouse_id       UUID NOT NULL,
-    vendor_id          UUID NOT NULL,
-    quantity_available INT DEFAULT 0,
-    quantity_reserved  INT DEFAULT 0,
-    safety_stock       INT DEFAULT 10,
-    last_updated       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (product_variant_id, warehouse_id)
-);
-
-CREATE INDEX idx_inventory_vendor ON inventory_items(vendor_id);
-CREATE INDEX idx_inventory_warehouse ON inventory_items(warehouse_id);
-
-CREATE TABLE stock_movements (
-    id                 UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    product_variant_id UUID NOT NULL,
-    warehouse_id       UUID NOT NULL,
-    vendor_id          UUID NOT NULL,
-    type               stock_movement_type NOT NULL,
-    quantity           INT NOT NULL,
-    reference_type     VARCHAR(50),
-    reference_id       VARCHAR(100),
-    notes              TEXT,
-    created_by         VARCHAR(100),
-    created_at         TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX idx_stock_sku_date ON stock_movements(product_variant_id, created_at);
-CREATE INDEX idx_stock_vendor ON stock_movements(vendor_id);
-CREATE INDEX idx_stock_type ON stock_movements(type);
-
-
--- ================================================
--- 4. ORDER SERVICE – order_db
--- ================================================
-CREATE TABLE fulfillment_orders (  -- tên bảng chuẩn quốc tế + VN
-    id                 UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    order_code         VARCHAR(50) UNIQUE NOT NULL,  -- ORD-20251202-0001
-    vendor_id          UUID NOT NULL,
-    warehouse_id       UUID NOT NULL,
-    
-    external_ref       VARCHAR(100) NULL,            -- Mã đơn Shopee/Lazada...
-    customer_name      VARCHAR(255) NULL,
-    customer_phone     VARCHAR(20)  NULL,
-    shipping_address   TEXT         NULL,
-    source             VARCHAR(30) NOT NULL DEFAULT 'MANUAL',
-    
-    status             order_status NOT NULL DEFAULT 'PENDING',
-    picked_at          TIMESTAMP NULL,
-    packed_at          TIMESTAMP NULL,
-    shipped_at         TIMESTAMP NULL,
-    cancelled_at       TIMESTAMP NULL,
-    
-    created_by         UUID NOT NULL,
-    created_at         TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at         TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
--- Chi tiết đơn xuất kho
-CREATE TABLE fulfillment_order_details (
-    id                   BIGSERIAL PRIMARY KEY,
-    order_id             UUID NOT NULL,
-    product_variant_id   UUID NOT NULL,
-    sku                  VARCHAR(100) NOT NULL,
-    product_name         VARCHAR(255) NOT NULL,
-    quantity_requested   INTEGER NOT NULL,
-    quantity_picked      INTEGER NOT NULL DEFAULT 0,
-    unit_price           DECIMAL(14,2),
-    notes                TEXT,
-    FOREIGN KEY (order_id) REFERENCES fulfillment_orders(id) ON DELETE CASCADE
-);
-
-CREATE TYPE inbound_status AS ENUM (
-    'DRAFT',        -- Vendor tạo nháp
-    'CONFIRMED',    -- Vendor xác nhận gửi hàng
-    'RECEIVING',    -- Kho đang nhận
-    'COMPLETED',    -- Đã nhận xong → cộng kho
-    'CANCELLED'
-);
-
-CREATE TABLE inbound_orders (
-    id                 UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    inbound_code       VARCHAR(50) UNIQUE NOT NULL,        -- PO-20251202-0001 hoặc REC-20251202-0001
-    vendor_id          UUID NOT NULL,                      -- Ai gửi hàng vào kho
-    warehouse_id       UUID NOT NULL,
-    
-    external_ref       VARCHAR(100) NULL,                  -- Mã phiếu nhập của vendor
-    supplier_name      VARCHAR(255) NULL,                  -- Nếu nhập từ NCC khác vendor
-    expected_at        DATE NULL,                          -- Ngày dự kiến nhận hàng
-    
-    status             inbound_status NOT NULL DEFAULT 'DRAFT',
-    received_at        TIMESTAMP NULL,                     -- Thời điểm hoàn tất nhận
-    
-    created_by         UUID NOT NULL,
-    created_at         TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at         TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    INDEX idx_vendor_status (vendor_id, status),
-    INDEX idx_warehouse_status (warehouse_id, status),
-    INDEX idx_inbound_code (inbound_code)
-);
-
--- Chi tiết nhập kho
-CREATE TABLE inbound_order_details (
-    id                   BIGSERIAL PRIMARY KEY,
-    inbound_order_id     UUID NOT NULL,
-    product_variant_id   UUID NOT NULL,
-    sku                  VARCHAR(100) NOT NULL,
-    product_name         VARCHAR(255) NOT NULL,
-    
-    quantity_expected    INTEGER NOT NULL,                   -- Dự kiến nhận
-    quantity_received    INTEGER NOT NULL DEFAULT 0,         -- Thực tế nhận được
-    
-    unit_price           DECIMAL(14,2) NULL,
-    notes                TEXT,
-    
-    FOREIGN KEY (inbound_order_id) REFERENCES inbound_orders(id) ON DELETE CASCADE
-);
-
--- <======================================usecase======================================>
-
-
-Vendor đăng ký shop → chờ duyệt → Admin duyệt shop
-Vendor đăng nhập → chỉ thấy dữ liệu của mình (filter vendor_id ở mọi service)
-Vendor đăng sản phẩm + variant + ảnh
-Nhập kho hàng loạt (tạo phiếu nhập → tăng tồn + stock_movements INBOUND)
-Trừ kho khi có đơn hàng (Order Service bắn Kafka → Inventory trừ kho + tạo movement OUTBOUND)
-Xem tồn kho hiện tại + lịch sử nhập xuất của 1 SKU
-Tìm kiếm + lọc sản phẩm nhanh (Elasticsearch + Kafka sync)
-
-→ Làm xong 7 cái này trong 3–4 tuần là em đã có WMS + Multi-vendor cơ bản chạy ngon, đủ đi xin việc 15–22tr.
-Tier S (Rất quan trọng – nhà tuyển dụng hỏi – làm xong auto 25tr+)
-
-Split order tự động khi khách mua nhiều shop → tạo vendor_orders
-Vendor vào Seller Center xem + xử lý đơn của mình (xác nhận, đóng gói, giao)
-Trả hàng → hoàn tồn kho (movement RETURN + tăng quantity_available)
-Cảnh báo hết hàng tự động (low-stock.alert qua Kafka → email/push)
-Import Excel sản phẩm + tồn kho (EasyExcel)
-Vendor tự cấu hình shop (COD, miễn phí ship, kho mặc định…)
-
-→ Làm thêm 6 cái này nữa là hệ thống giống Shopee 90%, phỏng vấn Shopee/Tiki/Lazada auto pass vòng technique.
-Tier A (Làm để lên level Senior – offer 30–50tr)
-
-Báo cáo doanh thu theo ngày/tuần/tháng của từng vendor (query + chart)
-Top sản phẩm bán chạy, sản phẩm tồn lâu, tỷ lệ hủy đơn theo shop
-Vendor rút tiền + lịch sử giao dịch (bảng payout_requests)
-Quản lý nhiều kho + gán kho cho vendor (vendor_warehouse_access)
-Review + rating sản phẩm & shop (tính rating trung bình tự động)
-Boost sản phẩm quảng cáo (trường boost_score trong Elasticsearch)
-Tính phí hoa hồng khác nhau theo danh mục/shop
-
-→ Làm đến đây là ngang dev 2–3 năm kinh nghiệm thực tế.
-Tier B (Bonus khoe kiến thức – làm nếu còn thời gian)
-
-Đổi trạng thái đơn hàng theo flow Shopee (PENDING → CONFIRMED → PACKING → SHIPPED → DELIVERED)
-Hỗ trợ chuyển kho nội bộ (movement type=TRANSFER)
-Export báo cáo PDF/Excel
-Webhook thông báo cho vendor khi có đơn mới
-
-
-📋 Danh sách Use‑case (list)
-STT 1 – Vendor đăng ký mở shop
-
-Flow: FE → Vendor Service POST /vendors → insert vendors (status=PENDING) → insert vendor_audit_logs → bắn Kafka vendor.created
-
-Công nghệ: Spring MVC + Keycloak JWT + Kafka
-
-Service chính: Vendor Service
-
-STT 2 – Admin duyệt shop
-
-Flow: FE → Vendor Service PATCH /vendors/{id}/approve → update status=ACTIVE → ghi audit_log → Kafka vendor.approved
-
-Công nghệ: Spring MVC + @PreAuthorize("hasRole('ADMIN')") + Kafka
-
-Service chính: Vendor Service
-
-STT 3 – Filter dữ liệu theo vendor_id (bắt buộc)
-
-Flow: API Gateway hoặc Global Filter → đọc JWT claim vendor_id → set request attribute → mọi service query thêm WHERE vendor_id = :currentVendorId
-
-Công nghệ: Spring Cloud Gateway Filter hoặc SecurityContext + JPA @Where
-
-Service chính: Tất cả services
-
-STT 4 – Vendor đăng sản phẩm + variant + ảnh
-
-Flow: FE → Product Service POST /products (multipart) → lưu product + variants + images → Kafka product.upserted
-
-Công nghệ: Spring MVC + MultipartFile + Kafka
-
-Service chính: Product Service
-
-STT 5 – Nhập kho hàng loạt
-
-Flow: FE → Inventory Service POST /inbound → @Transactional + Redisson.lock(sku) → insert inventory_items + nhiều stock_movements → Kafka inventory.updated
-
-Công nghệ: Spring MVC + @Transactional + Redisson (hoặc SELECT FOR UPDATE) + Kafka
-
-Service chính: Inventory Service
-
-STT 6 – Trừ kho khi khách đặt hàng (real‑time)
-
-Flow: Order Service (WebFlux) → tạo order → bắn Kafka order.confirmed → Inventory Service @KafkaListener → trừ kho + tạo movement OUTBOUND
-
-Công nghệ: Spring WebFlux (Order) + Kafka + Spring MVC (Inventory) + Redisson lock
-
-Service chính: Order Service
-
-STT 9 – Vendor xem & xử lý đơn hàng của mình
-
-Flow: FE → Order Service GET /vendor-orders → filter vendor_id từ JWT → trả danh sách + cho phép update status (PACKING → SHIPPED…)
-
-Công nghệ: Spring MVC + JWT claim
-
-Service chính: Order Service
-
-STT 10 – Trả hàng → hoàn tồn kho
-
-Flow: Vendor → Order Service POST /vendor-orders/{id}/return → Kafka return.requested → Inventory consumer + movement RETURN + tăng kho
-
-Công nghệ: Kafka + Saga nhẹ + @KafkaListener
-
-Service chính: Order → Inventory
-
-STT 11 – Cảnh báo hết hàng tự động
-
-Flow: Inventory trừ kho → nếu available ≤ safety_stock → Kafka low-stock.alert → Notification Service gửi email/push cho vendor
-
-Công nghệ: Kafka + Notification Service (@KafkaListener + Spring Mail hoặc Firebase)
-
-Service chính: Inventory → Notification
-
-STT 12 – Import Excel sản phẩm + tồn kho
-
-Flow: FE → Product/Inventory Service POST /import → EasyExcel đọc file → tạo product + variant + nhập kho đồng thời
-
-Công nghệ: EasyExcel + @Async hoặc Kafka batch
-
-Service chính: Product + Inventory
-
-STT 13 – Vendor cấu hình shop (COD, kho mặc định…)
-
-Flow: FE → Vendor Service PATCH /vendors/me/settings → update bảng vendor_settings
-
-Công nghệ: Spring MVC + JSONB
-
-Service chính: Vendor Service
-
-STT 14 – Báo cáo tồn kho hiện tại + lịch sử movement
-
-Flow: FE → Inventory Service GET /report & GET /movements?sku=… → query inventory_items + stock_movements + phân trang
-
-Công nghệ: Spring MVC + Pageable + SQL index tốt
-
-Service chính: Inventory Service
-
-STT 15 – Báo cáo doanh thu theo ngày của vendor
-
-Flow: FE → Order Service GET /reports/daily-sales → query order_items + vendor_orders group by date + vendor_id
-
-Công nghệ: Spring MVC + SQL window function hoặc materialized view
-
-Service chính: Order Service
-
-STT 16 – Quản lý nhiều kho + gán kho cho vendor
-
-Flow: Admin → Warehouse Service CRUD warehouses → Vendor Service CRUD vendor_warehouse_access
-
-Công nghệ: Spring MVC + bảng vendor_warehouse_access
-
-Service chính: Warehouse + Vendor Service
-
-STT 17 – Điều chỉnh tồn kho thủ công
-
-Flow: FE → Inventory Service POST /adjust → tạo movement ADJUSTMENT → cập nhật quantity
-
-Công nghệ: Spring MVC + @Transactional
-
-Service chính: Inventory Service
-
-STT 18 – Xem top sản phẩm bán chạy của shop
-
-Flow: FE → Order Service GET /reports/top-products → query order_items group by product_variant_id trong khoảng thời gian
-
-Công nghệ: Spring MVC + SQL
-
-Service chính: Order Service
-
-approveVendor(UUID vendorId) → duyệt/approve một shop.
-
-rejectVendor(UUID vendorId) → từ chối shop.
-
-suspendVendor(UUID vendorId) → tạm khóa shop.
-
-banVendor(UUID vendorId) → cấm vĩnh viễn shop.
-
-getPendingVendors() → lấy danh sách shop đang chờ duyệt.
-
-findByOwnerUserId(UUID ownerId) → tìm vendor theo user owner.
-
-searchVendors(VendorSearchRequest params, int page, int size) → tìm kiếm shop theo điều kiện, có phân trang và sắp xếp.
-
-updateBasicInfo(UUID vendorId, UpdateBasicInfoVendorRequest request) → Cập nhật thông tin cơ bản của vendor (tên, email, số điện thoại, …). → Tìm vendor theo vendorId, nếu không thấy thì ném VendorNotFoundException. → Dùng VendorMapper để map dữ liệu từ DTO sang entity, sau đó trả về VendorResponse.
-
-updateProfile(UUID vendorId, UpdateProfileVendorRequest request) → Cập nhật thông tin chi tiết/hồ sơ của shop (profile). → Tìm VendorProfile theo vendorId, nếu không thấy thì ném VendorNotFoundException. → Dùng VendorMapper để map dữ liệu từ DTO sang entity profile, sau đó trả về VendorResponse.
-
-getPublicVendorBySlug(String slug) → Lấy thông tin public của vendor theo slug (đường dẫn định danh). → Tìm vendor theo slug, nếu không thấy thì ném VendorNotFoundException. → Trả về VendorResponse.
-
-registerVendor(CreateRequest request)
-
-Lấy thông tin user hiện tại từ JwtUtils (ownerId, email).
-
-Kiểm tra slug có tồn tại chưa → nếu có thì ném SlugAlreadyExistsException.
-
-Kiểm tra user đã có vendor chưa → nếu có thì ném VendorAlreadyExistsException.
-
-Dùng VendorFactory để tạo entity Vendor từ request.
-
-Tạo VendorProfile với email, gắn vào vendor.
-
-Lưu vendor mới vào DB qua VendorRepository.
-
-Trả về VendorResponse.
-
-hasVendor()
-
-Kiểm tra user hiện tại (qua JwtUtils) đã có vendor chưa.
-
-Trả về boolean.
-
-getMyVendor()
-
-Lấy vendor của user hiện tại từ DB.
-
-Nếu không có thì log cảnh báo.
-
-Trả về VendorResponse.
-
-getCategoryById(UUID categoryId) → Lấy category theo ID, nếu không có thì ném CategoryNotFoundException. → Trả về DTO CategoryResponse.
-
-getCategoryBySlug(String slug) → Lấy category theo slug, nếu không có thì ném CategoryNotFoundException. → Trả về DTO CategoryResponse.
-
-getCategoryEntityBySlug(String slug) → Lấy entity Category theo slug (không map sang DTO). → Dùng khi cần entity để xử lý logic khác.
-
-updateCategory(UUID categoryId, CategoryUpdateRequest categoryUpdateRequest) → Cập nhật category theo ID với dữ liệu từ request. → Nếu không tìm thấy thì ném CategoryNotFoundException. → Dùng CategoryMapper để map dữ liệu, lưu lại, rồi trả về DTO.
-
-deleteCategory(UUID categoryId) → Xóa category theo ID, nếu không tìm thấy thì ném CategoryNotFoundException. → Gọi categoryRepository.delete.
-
-createImportJob(String fileName) → Tạo một job mới với trạng thái PENDING, gắn vendorId từ JWT, khởi tạo các số liệu (processedRows, successRows, failedRows, totalRows = 0). → Lưu vào DB.
-
-updateProgressImportJob(UUID id, long processedRows, long totalRows) → Cập nhật tiến độ job (số dòng đã xử lý, tổng số dòng). → Lưu lại.
-
-updateStatusImportJob(UUID id, ImportStatus status) → Cập nhật trạng thái job. → Nếu status là COMPLETED hoặc FAILED thì set thêm finishedAt. → Lưu lại.
-
-updateProgress(UUID jobId, long processedRows, long totalRows, long successRows, long failedRows) (hàm mới) → Cập nhật tiến độ chi tiết gồm số dòng thành công và thất bại. → Lưu lại.
-
-startJob(UUID jobId, long totalRows) (hàm mới) → Đặt trạng thái job thành RUNNING, set startedAt và tổng số dòng. → Lưu lại.
-
-failJob(UUID jobId, String errorMessage) (hàm mới) → Đặt trạng thái job thành FAILED, ghi lại thông báo lỗi, set finishedAt. → Lưu lại.
-
-getJob(UUID id) (helper) → Lấy job theo ID, nếu không có thì ném RuntimeException.
-
-updateBasicInfo(Product product, ProductImportRow row, ImportResult result) → (chưa implement) dự kiến cập nhật thông tin cơ bản của sản phẩm từ dữ liệu import.
-
-createNewProductWithVariants(ExcelCreateProductDto excelDto) → Tạo sản phẩm mới từ file Excel, bao gồm category, variants, attributes, images. → Dùng ExcelUtils để đọc dữ liệu, SkuHelper để tạo slug/sku.
-
-checkAndCreateProduct(ProductCreateRequest productRequest) → Kiểm tra slug trùng, nếu không thì tạo sản phẩm mới. → Trả về ProductResponse.
-
-checkSlug(String slug) (private) → Kiểm tra slug đã tồn tại chưa.
-
-createProduct(ProductCreateRequest productRequest) (private) → Map request thành entity Product, thêm images, variants, sku. → Lưu vào DB.
-
-checkAndUpdateProduct(UUID id, updateBasicInfoProduct productRequest) → Tìm sản phẩm theo id + vendorId, cập nhật thông tin cơ bản. → Trả về ProductResponse.
-
-updateProduct(UUID id, updateBasicInfoProduct productRequest, Product product) (private) → Thực hiện cập nhật base info và lưu lại.
-
-deleteProduct(UUID productId) → Đặt trạng thái sản phẩm thành INACTIVE thay vì xóa hẳn. → Trả về boolean.
-
-publishProduct(UUID productId) → Đặt trạng thái sản phẩm thành ACTIVE.
-
-unPublishProduct(UUID productId) → Đặt trạng thái sản phẩm thành DRAFT.
-
-duplicateProduct(UUID productId) → Nhân bản sản phẩm: copy slug (thêm hậu tố), status, images, variants. → Lưu sản phẩm mới và trả về ProductResponse.
-
-downFileTemplate() → Trả về file template Excel (product_template.xlsx) dưới dạng byte array để người dùng tải về.
-
-importFromFile(MultipartFile file, ImportMode mode) → Hàm chính để import sản phẩm từ file Excel.
-
-Tạo một ImportJob mới để theo dõi tiến trình.
-
-Đọc file Excel, duyệt qua các dòng, gom nhóm theo productCode.
-
-Đếm số dòng hợp lệ.
-
-Bắt đầu job (set trạng thái RUNNING).
-
-Với mỗi nhóm sản phẩm:
-
-Tạo ExcelCreateProductDto.
-
-Gọi processProductGroup() để xử lý (tạo mới hoặc cập nhật).
-
-Đếm số dòng thành công/thất bại.
-
-Cập nhật tiến độ mỗi 50 dòng.
-
-Flush/clear EntityManager mỗi 1000 dòng để tối ưu batch insert.
-
-Kết thúc job: set trạng thái COMPLETED hoặc FAILED.
-
-Trả về ImportResult chứa thông tin lỗi/thành công.
-
-initAttributeOptionsMap(Row headerRow) (private) → Đọc dòng header trong Excel để lấy danh sách attribute options (cột thuộc tính sản phẩm).
-
-processProductGroup(ExcelCreateProductDto excelDto) (private) → Xử lý một nhóm sản phẩm theo productCode.
-
-Nếu mode là CREATE_ONLY nhưng sản phẩm đã tồn tại → báo lỗi.
-
-Nếu mode là UPDATE_BASIC_ONLY nhưng sản phẩm chưa tồn tại → báo lỗi.
-
-Nếu sản phẩm mới → gọi productCommandService.createNewProductWithVariants().
-
-Nếu sản phẩm đã tồn tại → gọi productCommandService.updateBasicInfo().
-
-Nếu có nhiều dòng (variants) trong mode update → bỏ qua và báo lỗi.
-
-getProductEntityById(UUID id) → Lấy entity Product theo ID, nếu không có thì ném ProductNotFoundException.
-
-getAllProductsByVendorId(int page, int size) → Lấy tất cả sản phẩm ACTIVE của vendor hiện tại (lấy vendorId từ JWT). → Trả về Page<ProductResponse>.
-
-getMyAllProduct(int page, int size) → Lấy tất cả sản phẩm của vendor hiện tại (không phân biệt trạng thái). → Trả về Page<ProductResponse>.
-
-getProductById(UUID productId) → Lấy sản phẩm theo ID, nếu không có thì ném ProductNotFoundException. → Trả về DTO ProductResponse.
-
-getAllProducts(int page, int size) → Lấy tất cả sản phẩm trong hệ thống (không phân biệt vendor). → Trả về Page<ProductResponse>.
-
-searchMyProduct(int page, int size, ProductSearchRequest search) → Tìm kiếm sản phẩm của vendor hiện tại theo điều kiện trong ProductSearchRequest. → Dùng ProductSpecification.fromRequest(search, vendorId) để build specification. → Có phân trang và sắp xếp.
-
-searchProduct(int page, int size, ProductSearchRequest search) → Tìm kiếm tất cả sản phẩm trong hệ thống theo điều kiện. → Dùng ProductSpecification.fromRequest(search, null) để build specification. → Có phân trang và sắp xếp.
-createInbound(CreateInventoryItemRequest req, UUID vendorId) → Nhập kho (inbound).
-
-Tìm InventoryItem theo productVariantId + warehouseId.
-
-Nếu chưa có thì tạo mới từ DTO.
-
-Cộng thêm số lượng nhập vào.
-
-Lưu lại và ghi nhận movement với type INBOUND.
-
-adjustStock(CreateStockMovementRequest req, UUID vendorId) → Điều chỉnh tồn kho (cộng/trừ).
-
-Tìm item theo variant + warehouse.
-
-Tính số lượng mới, nếu < 0 thì ném InsufficientStockException.
-
-Cập nhật số lượng và lưu.
-
-Ghi nhận movement với type ADJUSTMENT.
-
-transferStock(TransferRequest req, UUID vendorId) → Chuyển kho.
-
-Lấy variantId, fromWarehouse, toWarehouse, quantity.
-
-Kiểm tra quantity > 0.
-
-Ghi nhận movement outbound (TRANSFER_OUT) từ kho nguồn.
-
-Ghi nhận movement inbound (TRANSFER_IN) vào kho đích.
-
-Trả về message thành công.
-
-withLock(String key, Supplier<T> supplier) (private) → Dùng Redisson lock theo key, giữ 60s, thực thi logic an toàn.
-
-withLock(String key, Runnable action) (private) → Overload cho Runnable, gọi supplier wrapper.
-
-getStockByVariantIds(List<UUID> variantIds) → Lấy tổng tồn kho cho nhiều variant, gọi tiếp hàm overload với warehouseIds = null.
-
-getStockByVariantIds(List<UUID> variantIds, List<UUID> warehouseIds) → Truy vấn tồn kho theo variant và warehouse.
-
-Kiểm tra cache (RMapCache).
-
-Nếu cache thiếu dữ liệu thì truy vấn DB, tính tổng quantityAvailable, lưu lại vào cache.
-
-Đảm bảo tất cả variantIds đều có kết quả (nếu không thì mặc định 0).
-
-getStockDetail(UUID variantId) → Lấy chi tiết tồn kho cho một variant.
-
-Tính tổng available, reserved, onHand.
-
-Trả về danh sách warehouse chi tiết qua mapper.
-
-searchStock(StockSearchRequest request, Pageable pageable) → Tìm kiếm tồn kho theo keyword, warehouseIds, min/max stock.
-
-Trả về Page<StockSummaryDto>.
-
-getMovementsByVariant(UUID variantId, Pageable pageable) → Lấy lịch sử biến động tồn kho cho một variant.
-
-Trả về Page<StockMovementResponse>.
-
-getStockSummaryReport() → Lấy báo cáo tổng quan tồn kho cho vendor hiện tại.
-
-Kiểm tra cache (stock:reports).
-
-Nếu chưa có thì truy vấn DB, tính toán: tổng variants, tổng available, tổng reserved, số variant low stock.
-
-Lưu vào cache với TTL 10 phút.
-
-getMyWarehouses() → Lấy danh sách warehouse của vendor hiện tại.
-
-Kiểm tra cache (vendor:warehouses:{vendorId}).
-
-Nếu chưa có thì truy vấn DB, lưu vào cache với TTL 24h.
-
-recordMovement(StockMovementRecord record) → Ghi nhận một biến động tồn kho.
-
-Lấy vendorId từ JWT.
-
-Tạo lock key theo variant + warehouse để tránh race condition.
-
-Tìm InventoryItem theo variantId + warehouseId, nếu không có thì ném InventoryNotFoundException.
-
-Tính delta số lượng dựa trên loại movement (INBOUND, RETURN, ADJUSTMENT → cộng; OUTBOUND, TRANSFER → trừ).
-
-Kiểm tra số lượng mới, nếu < 0 thì ném InsufficientStockException.
-
-Cập nhật số lượng tồn kho và lưu lại.
-
-Tạo entity StockMovement với thông tin chi tiết (type, quantity, referenceType, notes, createdBy, createdAt).
-
-Lưu movement vào DB qua StockMovementRepository.
-
-Xóa cache summary tồn kho liên quan bằng Redisson.
-
-Trả về DTO StockMovementResponse.
-
-calculateDelta(StockMovementType type, int quantity) (private) → Tính toán số lượng thay đổi dựa trên loại movement.
-
-INBOUND, RETURN, ADJUSTMENT → +quantity.
-
-OUTBOUND, TRANSFER → -quantity.
-
-withLock(String key, Supplier<T> supplier) (private) → Thực thi logic với Redisson lock.
-
-Thử acquire lock trong 10 giây, giữ lock tối đa 60 giây.
-
-Nếu không acquire được thì ném RuntimeException.
-
-Đảm bảo unlock khi xong.
-
-
-
-STT	API + Method	Ai gọi?	Mục đích thực tế	Bắn Kafka?	Ghi chú quan trọng
-1	POST /api/orders → createOrder(req)	Vendor	Tạo lệnh xuất kho ở trạng thái CREATED (chưa reserve)	No	Không reserve ngay; đầu vào toàn hệ thống
-2	POST /api/orders/{id}/approve → approveOrder(id)	Quản lý kho	Duyệt đơn → chuyển APPROVED và RESERVE tồn khả dụng	Yes: order.approved	Thời điểm hợp lý để reserve
-3	GET /api/orders (filter: status, date, code, warehouse…)	Vendor + Nhân viên kho	Xem danh sách đơn theo quyền	No	Phân quyền theo vendor_id/warehouse_id
-4	GET /api/orders/{id}	Tất cả	Xem chi tiết đơn	No	Dùng chung vendor/kho
-5	PATCH /api/orders/{id}/start-picking	Nhân viên kho	Bắt đầu lấy hàng → PICKING	Optional: order.picking	Thường dùng trên app kho
-6	PATCH /api/orders/{id}/complete-picking (body: thực tế)	Nhân viên kho	Nhập số lượng thực tế (có thể thiếu) → PICKED	Optional: order.picked	Cho phép lấy thiếu theo dòng
-7	PATCH /api/orders/{id}/start-packing	Nhân viên kho	Bắt đầu đóng gói → PACKING	No	Có thể gộp nếu muốn
-8	PATCH /api/orders/{id}/complete-packing	Nhân viên kho	Đóng gói xong → PACKED	No	Có thể gộp thành 1 nút “PACKED”
-9	PATCH /api/orders/{id}/ship → shipOrder(id)	Nhân viên kho	Xuất kho → SHIPPED, trừ kho thật + movement OUTBOUND	Yes: order.shipped	Điểm trừ tồn thực tế, bắt buộc
-10	PATCH /api/orders/{id}/cancel (reason)	Vendor / Quản lý kho	Hủy đơn → RELEASE reserve (nếu đã reserve)	Yes: order.cancelled	Bắt buộc để xử lý bom hàng/hết hàng
-11	PATCH /api/orders/{id}/release-reserve	Quản lý kho	Chủ động trả lại phần reserve mà không hủy đơn	Yes: order.reserve_released	Dùng khi reserve sai hoặc thiếu hàng
-12	PATCH /api/orders/{id}/update-items	Vendor (trước khi approve)	Cập nhật dòng hàng khi đơn còn CREATED	No	Khóa chỉnh sửa sau khi APPROVED
-13	PATCH /api/orders/{id}/reopen-picking	Nhân viên kho	Mở lại từ PICKED về PICKING để chỉnh thực tế	Optional	Xử lý tình huống sai lệch ở sàn/kệ
-14	GET /api/orders/{id}/history	Tất cả	Xem nhật ký thao tác/trạng thái	No	Audit trail phục vụ đối soát

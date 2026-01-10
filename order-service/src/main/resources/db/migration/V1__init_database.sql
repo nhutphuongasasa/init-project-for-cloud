@@ -15,6 +15,10 @@ CREATE TABLE fulfillment_orders (
     packed_at TIMESTAMP,
     shipped_at TIMESTAMP,
     cancelled_at TIMESTAMP,
+    failure_reason VARCHAR(50),
+    failure_message VARCHAR(255),
+    failure_step VARCHAR(50),
+    failed_at TIMESTAMP,
     created_by UUID NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
