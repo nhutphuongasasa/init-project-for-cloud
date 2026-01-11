@@ -4,6 +4,14 @@ server:
     connection-timeout: 30s
     idle-timeout: 30s
 
+nhutphuongasasa:
+  frontend:
+    callback-url: http://localhost
+  security:
+    access-token-validity-in-seconds: 3600
+    jwt-issuer: "auth-service"
+  aes-Key: "aes" 
+
 spring:
   application:
     name: auth-service

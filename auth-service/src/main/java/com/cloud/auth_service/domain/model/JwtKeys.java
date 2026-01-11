@@ -9,17 +9,24 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * @nhutphuong
+ * @since 2026/1/11 12h
+ * @version 1
+ */
+@Builder
 @Entity
 @Table(name = "jwt_keys")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class JwkKeys {
+public class JwtKeys {
 
     @Id
     @UuidGenerator(style = UuidGenerator.Style.RANDOM)

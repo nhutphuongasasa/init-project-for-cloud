@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 
 import com.cloud.auth_service.domain.model.User;
 import com.cloud.auth_service.infrastructure.adapter.outbound.repository.UserRepository;
+import com.cloud.auth_service.infrastructure.config.properties.AppProperties;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -27,6 +28,7 @@ import lombok.extern.slf4j.Slf4j;
 @Component
 @RequiredArgsConstructor
 public class LoginSuccessHandler extends SavedRequestAwareAuthenticationSuccessHandler{
+    private final AppProperties appProperties;
     private final UserRepository userRepository;
 
     @Override
@@ -47,20 +49,26 @@ public class LoginSuccessHandler extends SavedRequestAwareAuthenticationSuccessH
                 String avatarUrl = oidcUser.getAttribute("picture");
 
                 if(!userRepository.existsByEmail(email)){
-                    User.builder()
+                    User newUser = User.builder()
                         .provider(provider)
                         .providerId(providerId)
                         .email(email)
                         .fullName(fullName)
                         .avatarUrl(avatarUrl)
-                        .emailVerified(false)
+                        .emailVerified(true)
                         .lastLogin(Instant.now())
                         .build();
+
+                    userRepository.save(newUser);
                 }
 
                 log.info("Đã lưu user mới: {}", email);
             }
         }
+        this.setDefaultTargetUrl(appProperties.getFrontend().getCallbackUrl());
+        this.setAlwaysUseDefaultTargetUrl(true); 
+
+        log.info("Login thành công. Đang đẩy User về trang xử lý code: {}", appProperties.getFrontend().getCallbackUrl());
 
         super.onAuthenticationSuccess(request, response, authentication);
     }

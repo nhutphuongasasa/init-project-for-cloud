@@ -4,9 +4,10 @@ import com.cloud.auth_service.domain.model.User; // Giả sử model của bạn
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
-public interface UserRepository extends JpaRepository<User, String> {
+public interface UserRepository extends JpaRepository<User, UUID> {
     
     Optional<User> findByEmail(String email);
 
