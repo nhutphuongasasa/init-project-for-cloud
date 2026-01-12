@@ -12,13 +12,15 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import com.cloud.vendor_service.domain.enums.VendorStatus;
+
 import java.time.Instant;
 import java.util.UUID;
 
 
 /**
  * @author nhutphuong
- * @version 1.0
+ * @version 2
  * @created 24/11/2025
  */
 @Entity
@@ -32,10 +34,9 @@ import java.util.UUID;
 public class Vendor {
 
     @Id
-    // @UuidGenerator(style = UuidGenerator.Style.RANDOM)
+    @UuidGenerator(style = UuidGenerator.Style.RANDOM)
     @Column(updatable = false, nullable = false)
     private UUID id;
-
 
     @Column(nullable = false, length = 255)
     private String name;
@@ -49,23 +50,13 @@ public class Vendor {
     @Column(name = "description", length = 500)
     private String description;
 
-    // @Column(name = "owner_user_id", nullable = false, length = 100)
-    // private UUID ownerUserId; // Keycloak sub/user_id
+    @Column(name = "owner_id", nullable = false, length = 100)
+    private UUID ownerId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default
     private VendorStatus status = VendorStatus.PENDING;
-
-    // @Column(precision = 3, scale = 2)
-    // @ColumnDefault("0.00")
-    // @Builder.Default
-    // private BigDecimal rating = BigDecimal.ZERO;
-
-    // @Column(name = "total_sales")
-    // @ColumnDefault("0")
-    // @Builder.Default
-    // private Long totalSales = 0L;
 
     @CreatedDate
     @Column(name = "joined_at", updatable = false)
@@ -82,12 +73,4 @@ public class Vendor {
         CascadeType.DETACH
     }, fetch = FetchType.LAZY, optional = false)
     private VendorProfile profile;
-
-    // @OneToOne(mappedBy = "vendor", cascade = {
-    //     CascadeType.PERSIST,
-    //     CascadeType.MERGE,
-    //     CascadeType.REFRESH,
-    //     CascadeType.DETACH
-    // }, fetch = FetchType.LAZY, optional = false)
-    // private VendorSettings settings;
 }

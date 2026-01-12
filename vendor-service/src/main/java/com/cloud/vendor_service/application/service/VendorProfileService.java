@@ -6,11 +6,11 @@ import org.springframework.stereotype.Service;
 
 import com.cloud.vendor_service.infastructure.adapter.outbound.repository.VendorProfileRepository;
 import com.cloud.vendor_service.infastructure.adapter.outbound.repository.VendorRepository;
+import com.cloud.vendor_service.infastructure.exception.custom.VendorNotFoundException;
 import com.cloud.vendor_service.application.dto.request.UpdateBasicInfoVendorRequest;
 import com.cloud.vendor_service.application.dto.request.UpdateProfileVendorRequest;
 import com.cloud.vendor_service.application.dto.response.VendorResponse;
 import com.cloud.vendor_service.application.mapper.VendorMapper;
-import com.cloud.vendor_service.domain.exception.custom.VendorNotFoundException;
 import com.cloud.vendor_service.domain.model.Vendor;
 import com.cloud.vendor_service.domain.model.VendorProfile;
 import com.cloud.vendor_service.common.utils.jwt.JwtUtils;

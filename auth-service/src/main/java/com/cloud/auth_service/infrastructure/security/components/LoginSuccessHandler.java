@@ -48,7 +48,10 @@ public class LoginSuccessHandler extends SavedRequestAwareAuthenticationSuccessH
                 String fullName = oidcUser.getFullName();
                 String avatarUrl = oidcUser.getAttribute("picture");
 
-                if(!userRepository.existsByEmail(email)){
+                User existedUser = userRepository.findByEmail(email)
+                    .orElse(null);
+
+                if(existedUser == null){
                     User newUser = User.builder()
                         .provider(provider)
                         .providerId(providerId)
@@ -60,6 +63,9 @@ public class LoginSuccessHandler extends SavedRequestAwareAuthenticationSuccessH
                         .build();
 
                     userRepository.save(newUser);
+                } else{
+                    existedUser.setLastLogin(Instant.now());
+                    userRepository.save(existedUser);
                 }
 
                 log.info("Đã lưu user mới: {}", email);

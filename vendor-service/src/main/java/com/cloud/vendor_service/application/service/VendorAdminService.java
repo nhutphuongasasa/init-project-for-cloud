@@ -16,12 +16,12 @@ import com.cloud.vendor_service.application.dto.response.VendorProfileResponse;
 import com.cloud.vendor_service.application.dto.request.VendorSearchRequest;
 import com.cloud.vendor_service.application.dto.response.VendorResponse;
 import com.cloud.vendor_service.application.mapper.VendorMapper;
-import com.cloud.vendor_service.domain.exception.custom.VendorNotFoundException;
+import com.cloud.vendor_service.domain.enums.VendorStatus;
 import com.cloud.vendor_service.domain.model.Vendor;
-import com.cloud.vendor_service.domain.model.VendorStatus;
 import com.cloud.vendor_service.domain.service.VendorStatusManager;
 import com.cloud.vendor_service.domain.specification.VendorSpecifications;
 import com.cloud.vendor_service.infastructure.adapter.outbound.repository.VendorRepository;
+import com.cloud.vendor_service.infastructure.exception.custom.VendorNotFoundException;
 
 import lombok.extern.slf4j.Slf4j;
 

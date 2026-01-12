@@ -13,9 +13,6 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-// import java.time.Instant;
-
-
 /**
  * @author nhutphuong
  * @version 1.0
@@ -52,9 +49,6 @@ public class VendorProfile {
     @Column(name = "tax_code", length = 50)
     private String taxCode;
 
-    // @Column(name = "stripe_account_token_id", length = 100)
-    // private String stripeAccountTokenID;
-
     @Column(name = "website_url", length = 255)
     private String websiteUrl;
 
@@ -65,7 +59,4 @@ public class VendorProfile {
     @LastModifiedDate
     @Column(name = "updated_at")
     private Instant updatedAt;
-
-    // @Column(name = "verified_at")
-    // private Instant verifiedAt;
 }

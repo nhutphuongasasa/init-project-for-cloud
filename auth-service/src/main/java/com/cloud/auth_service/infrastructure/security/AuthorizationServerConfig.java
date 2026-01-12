@@ -19,14 +19,8 @@ import org.springframework.security.oauth2.server.authorization.config.annotatio
 import org.springframework.security.oauth2.server.authorization.token.JwtEncodingContext;
 import org.springframework.security.oauth2.server.authorization.token.OAuth2TokenCustomizer;
 import org.springframework.security.web.SecurityFilterChain;
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.security.interfaces.RSAPrivateKey;
-import java.security.interfaces.RSAPublicKey;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.Set;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 import com.cloud.auth_service.domain.model.Role;
@@ -36,6 +30,7 @@ import com.cloud.auth_service.infrastructure.config.properties.AppProperties;
 import com.cloud.auth_service.infrastructure.exception.UserNotFoundException;
 import com.cloud.auth_service.infrastructure.security.components.LoginSuccessHandler;
 import com.cloud.auth_service.infrastructure.security.components.OAuth2TokenSuccessHandler;
+import com.cloud.auth_service.infrastructure.security.keys.JwtManager;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
@@ -56,6 +51,8 @@ public class AuthorizationServerConfig {
 	private final LoginSuccessHandler loginSuccessHandler;
 	private final OAuth2TokenSuccessHandler tokenSuccessHandler;
 	private final AppProperties appProperties;
+	private final JwtManager jwtManager;
+	private JWKSource<SecurityContext> jwkSource;
 
 	//kiem tra url co url trong authorization config 
     @Bean
@@ -94,7 +91,7 @@ public class AuthorizationServerConfig {
     }
 
     @Bean
-    @Order(2)
+    @Order(3)
     public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
         http
             .authorizeHttpRequests(authorize -> authorize
@@ -158,30 +155,15 @@ public class AuthorizationServerConfig {
 		};
 	}
 
+	//nha cung cap khoa khong phai nguoi quyet dinh
 	@Bean 
 	public JWKSource<SecurityContext> jwkSource() {
-		KeyPair keyPair = generateRsaKey();
-		RSAPublicKey publicKey = (RSAPublicKey) keyPair.getPublic();
-		RSAPrivateKey privateKey = (RSAPrivateKey) keyPair.getPrivate();
-		RSAKey rsaKey = new RSAKey.Builder(publicKey)
-				.privateKey(privateKey)
-				.keyID(UUID.randomUUID().toString())
-				.build();
-		JWKSet jwkSet = new JWKSet(rsaKey);
-		return new ImmutableJWKSet<>(jwkSet);
-	}
-
-    private KeyPair generateRsaKey() { 
-		KeyPair keyPair;
-		try {
-			KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
-			keyPairGenerator.initialize(2048);
-			keyPair = keyPairGenerator.generateKeyPair();
+		if(this.jwkSource == null){
+			RSAKey rsaKey = jwtManager.getLastRsaKey();
+			JWKSet jwkSet = new JWKSet(rsaKey);
+			this.jwkSource = new ImmutableJWKSet<>(jwkSet);
 		}
-		catch (Exception ex) {
-			throw new IllegalStateException(ex);
-		}
-		return keyPair;
+		return this.jwkSource;
 	}
 
     @Bean 

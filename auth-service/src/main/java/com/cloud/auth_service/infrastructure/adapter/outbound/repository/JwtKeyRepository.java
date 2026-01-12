@@ -1,5 +1,6 @@
 package com.cloud.auth_service.infrastructure.adapter.outbound.repository;
 
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -14,5 +15,5 @@ import com.cloud.auth_service.domain.model.JwtKeys;
  */
 @Repository
 public interface JwtKeyRepository extends JpaRepository<JwtKeys, UUID>{
-
+    Optional<JwtKeys> findTopByOrderByCreatedAtDesc();
 }

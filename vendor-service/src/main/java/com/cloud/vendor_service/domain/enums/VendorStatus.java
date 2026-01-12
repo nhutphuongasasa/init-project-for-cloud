@@ -1,4 +1,4 @@
-package com.cloud.vendor_service.domain.model;
+package com.cloud.vendor_service.domain.enums;
 
 public enum VendorStatus {
     PENDING,    // Chờ duyệt

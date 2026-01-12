@@ -1,5 +1,5 @@
 CREATE TABLE users (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY,
     provider VARCHAR(50) NOT NULL,                  -- 'google', 'facebook', 'apple', 'microsoft', etc.
     provider_id VARCHAR(255) NOT NULL,              -- ID từ provider
     email VARCHAR(255) NOT NULL,

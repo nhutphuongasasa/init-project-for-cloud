@@ -11,8 +11,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
+import com.cloud.vendor_service.domain.enums.VendorStatus;
 import com.cloud.vendor_service.domain.model.Vendor;
-import com.cloud.vendor_service.domain.model.VendorStatus;
 
 @Repository
 public interface VendorRepository extends JpaRepository<Vendor, UUID>, JpaSpecificationExecutor<Vendor> {

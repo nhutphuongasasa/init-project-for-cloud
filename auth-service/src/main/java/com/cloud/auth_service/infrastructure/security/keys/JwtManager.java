@@ -11,6 +11,7 @@ import java.util.Base64;
 
 import org.springframework.stereotype.Component;
 
+import com.cloud.auth_service.common.utils.jwt.AesUtils;
 import com.cloud.auth_service.domain.model.JwtKeys;
 import com.cloud.auth_service.infrastructure.adapter.outbound.repository.JwtKeyRepository;
 import com.cloud.auth_service.infrastructure.config.properties.AppProperties;
@@ -28,33 +29,55 @@ import lombok.RequiredArgsConstructor;
 public class JwtManager {
 	private final JwtKeyRepository jwtKeyRepository;
 	private final AppProperties appProperties;
+	private final AesUtils aesUtils;
 
-    public RSAKey getLastRsaKey(){
+	public RSAKey getLastRsaKey() {
+		try {
+			JwtKeys jwtKey = jwtKeyRepository.findTopByOrderByCreatedAtDesc()
+				.orElse(null);
 		
+			if(jwtKey == null){
+				return generateAndSaveKey();
+			}	
 
-        return null;
-    }
+			String privateKey = aesUtils.decrypt(jwtKey.getPrivateKey(), appProperties.getAesKey());
+			String publicKey = jwtKey.getPublicKey();
 
-    private RSAKey generateAndSaveKey() throws Exception{
+			//phai  parse tu base64  vi khi luu vao da base64
+			return new RSAKey.Builder(parsePublicKey(publicKey))
+				.privateKey(parsPrivateKey(privateKey))
+				.keyID(jwtKey.getKid().toString())
+				.build();
+
+		} catch (Exception e) {
+			return null;
+		}
+	}
+
+    public RSAKey generateAndSaveKey() throws Exception{
         KeyPair keyPair = generateRsaKey();
+		RSAPublicKey publicKey = (RSAPublicKey) keyPair.getPublic();
+    	RSAPrivateKey privateKey = (RSAPrivateKey) keyPair.getPrivate();
 
-		String pubStr = Base64.getEncoder().encodeToString(keyPair.getPublic().getEncoded());
-		String priStr = Base64.getEncoder().encodeToString(keyPair.getPrivate().getEncoded());
+		//base64 vi rsa la mang byte
+		String pubStr = Base64.getEncoder().encodeToString(publicKey.getEncoded());
+		String priStr = Base64.getEncoder().encodeToString(privateKey.getEncoded());
 
-		String publicKey = parsPrivateKey(priStr).toString();
-		String privateKey = parsePublicKey(pubStr).toString();
+		String encryptedPrivateKey = aesUtils.encrypt(priStr, appProperties.getAesKey());
 
-		String encryptedPrivateKey = "";
-
-        jwtKeyRepository.save(
+        JwtKeys jwtKey =jwtKeyRepository.save(
 			JwtKeys.builder()
-				.privateKey(publicKey)
-				.publicKey(privateKey)
+				.privateKey(encryptedPrivateKey)
+				.publicKey(pubStr)
 				.algorithm("RSA")
 				.build()
 		);
 
-        return null;
+		return new RSAKey.Builder(publicKey)
+			.privateKey(privateKey)
+			.keyID(jwtKey.getKid().toString())
+			.build();
+
     }
 
 	private RSAPublicKey parsePublicKey(String keyStr) throws Exception {

@@ -17,7 +17,8 @@ public class AppProperties {
 
     private final Frontend frontend = new Frontend();
     private final Security security = new Security();
-	private String aesKey;
+	private final String aesKey;
+    private final String keyRotationCron;
 
     @Data
     public static class Frontend {

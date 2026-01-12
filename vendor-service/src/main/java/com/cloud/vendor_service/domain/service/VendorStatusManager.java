@@ -1,8 +1,8 @@
 package com.cloud.vendor_service.domain.service;
 
 import com.cloud.vendor_service.domain.model.Vendor;
-import com.cloud.vendor_service.domain.model.VendorStatus;
-import com.cloud.vendor_service.domain.exception.custom.InvalidVendorStatusTransitionException;
+import com.cloud.vendor_service.infastructure.exception.custom.InvalidVendorStatusTransitionException;
+import com.cloud.vendor_service.domain.enums.VendorStatus;
 
 /**
  * @author nhutphuong

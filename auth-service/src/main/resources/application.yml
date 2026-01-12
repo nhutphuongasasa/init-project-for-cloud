@@ -11,6 +11,7 @@ nhutphuongasasa:
     access-token-validity-in-seconds: 3600
     jwt-issuer: "auth-service"
   aes-Key: "aes" 
+  key-rotation-cron: 0 0 0 1 * ?
 
 spring:
   application:
@@ -67,6 +68,8 @@ spring:
 logging:
   level:
     root: INFO
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
     # brave: DEBUG
     reactor.netty: INFO
     org.springframework.web: INFO

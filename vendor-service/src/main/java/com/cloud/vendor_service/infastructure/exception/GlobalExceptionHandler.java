@@ -1,4 +1,4 @@
-package com.cloud.vendor_service.domain.exception;
+package com.cloud.vendor_service.infastructure.exception;
 
 import java.time.Instant;
 

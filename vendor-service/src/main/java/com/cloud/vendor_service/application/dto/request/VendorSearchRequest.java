@@ -2,9 +2,7 @@ package com.cloud.vendor_service.application.dto.request;
 
 import java.util.UUID;
 
-// import org.springframework.data.domain.Sort;
-
-import com.cloud.vendor_service.domain.model.VendorStatus;
+import com.cloud.vendor_service.domain.enums.VendorStatus;
 
 import lombok.Getter;
 import lombok.Setter;

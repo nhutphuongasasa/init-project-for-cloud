@@ -1,4 +1,4 @@
-package com.cloud.vendor_service.domain.exception.custom;
+package com.cloud.vendor_service.infastructure.exception.custom;
 
 import com.cloud.vendor_service.common.exception.InvalidOperationException;
 

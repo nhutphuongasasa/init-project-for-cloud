@@ -11,6 +11,7 @@ import com.cloud.vendor_service.application.dto.response.VendorResponse;
 import com.cloud.vendor_service.domain.model.Vendor;
 import com.cloud.vendor_service.domain.model.VendorProfile;
 
+
 @Mapper(componentModel = "spring")
 public interface VendorMapper {
     
