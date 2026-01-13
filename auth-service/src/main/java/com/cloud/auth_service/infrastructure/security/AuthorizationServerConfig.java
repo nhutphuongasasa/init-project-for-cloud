@@ -20,6 +20,7 @@ import org.springframework.security.oauth2.server.authorization.token.JwtEncodin
 import org.springframework.security.oauth2.server.authorization.token.OAuth2TokenCustomizer;
 import org.springframework.security.web.SecurityFilterChain;
 import java.time.Instant;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -31,6 +32,9 @@ import com.cloud.auth_service.infrastructure.exception.UserNotFoundException;
 import com.cloud.auth_service.infrastructure.security.components.LoginSuccessHandler;
 import com.cloud.auth_service.infrastructure.security.components.OAuth2TokenSuccessHandler;
 import com.cloud.auth_service.infrastructure.security.keys.JwtManager;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
@@ -38,11 +42,13 @@ import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * @author nhutphuong
  * @since 2026-01-09 20:06
  */
+@Slf4j
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
@@ -111,6 +117,10 @@ public class AuthorizationServerConfig {
 
 	@Bean
 	public OAuth2TokenCustomizer<JwtEncodingContext> tokenCustomizer() {
+		ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule());
+        mapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
+		
 		return context -> {
 			if (OAuth2TokenType.ACCESS_TOKEN.equals(context.getTokenType())) {
 				
@@ -151,6 +161,19 @@ public class AuthorizationServerConfig {
 					.issuer(appProperties.getSecurity().getJwtIssuer())
 					.issuedAt(Instant.now())
 					.expiresAt(Instant.now().plusSeconds(appProperties.getSecurity().getAccessTokenValidityInSeconds()));
+		
+				try {
+                    Map<String, Object> allClaims = context.getClaims().build().getClaims();
+                    
+                    String prettyJson = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(allClaims);
+                    
+                    log.info("\n🔍 [JWT DEBUG] FULL CLAIMS BEFORE SIGNING:\n" +
+                             "------------------------------------------\n" +
+                             "{}\n" +
+                             "------------------------------------------", prettyJson);
+                } catch (Exception e) {
+                    log.error("❌ Failed to log JWT claims", e);
+                }
 			}
 		};
 	}

@@ -1,7 +1,9 @@
 package com.cloud.auth_service.application.dto.response;
 
 import java.time.Instant;
+import java.util.Set;
 
+import com.cloud.auth_service.domain.model.Role;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 
@@ -24,4 +26,5 @@ public class UserResponse {
     private String avatarUrl;
     private String emailVerified;
     private Instant lastLogin;
+    private Set<Role> roles;
 }

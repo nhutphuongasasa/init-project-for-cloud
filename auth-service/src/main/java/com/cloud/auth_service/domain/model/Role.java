@@ -20,9 +20,15 @@ public class Role {
     private UUID id;
 
     @Column(unique = true, nullable = false, length = 100)
+    private String code;
+
+    @Column(unique = true, nullable = false, length = 100)
     private String name;
 
     private String description;
+
+    @Column(nullable = false, name = "is_active")
+    private Boolean isActive;
 
     @Override
     public String toString(){

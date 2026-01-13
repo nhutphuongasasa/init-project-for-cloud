@@ -74,7 +74,7 @@ logging:
     reactor.netty: INFO
     org.springframework.web: INFO
     org.springframework.cloud: INFO
-    com.cloud.authentication-service: INFO
+    com.cloud.auth_service: INFO
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
     file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"

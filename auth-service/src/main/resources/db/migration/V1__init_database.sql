@@ -19,7 +19,9 @@ CREATE INDEX idx_users_provider ON users(provider, provider_id);
 
 CREATE TABLE roles (
     id UUID PRIMARY KEY ,
-    name VARCHAR(100) UNIQUE NOT NULL,              -- PLATFORM_ADMIN, VENDOR_OWNER, VENDOR_ADMIN, VENDOR_STAFF, VENDOR_WAREHOUSE_PICKER, VENDOR_VIEWER
+    code VARCHAR(50) UNIQUE NOT NULL,
+    name VARCHAR(100) UNIQUE NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
     description TEXT
 );
 

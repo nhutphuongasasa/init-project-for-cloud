@@ -1,19 +1,23 @@
 package com.cloud.auth_service.application.service;
 
+import java.time.Instant;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.cloud.auth_service.application.dto.response.UserResponse;
+import com.cloud.auth_service.domain.model.Role;
 import com.cloud.auth_service.domain.model.User;
 import com.cloud.auth_service.infrastructure.adapter.outbound.repository.UserRepository;
 import com.cloud.auth_service.infrastructure.exception.UserNotFoundException;
 import com.cloud.auth_service.infrastructure.mapper.UserMapper;
+import com.cloud.auth_service.common.utils.jwt.JwtUtils;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,23 +33,66 @@ import lombok.extern.slf4j.Slf4j;
 public class UserService {
     private final UserRepository userRepository;
     private final UserMapper userMapper;
+    private final JwtUtils JwtUtils;
+    private final RoleService roleService;
 
-    public UserResponse getMyInfo() {
-        var authentication = SecurityContextHolder.getContext().getAuthentication();
+    public Boolean checkExistedUser(String email){
+        return userRepository.existsByEmail(email);
+    }
+
+    @Transactional
+    public void syncUser(OidcUser oidcUser, String provider) {
+        String email = oidcUser.getEmail();
         
-        if (authentication != null && authentication.getPrincipal() instanceof Jwt jwt) {
-            String email = jwt.getClaimAsString("sub"); 
-            
-            log.info("Fetching 'My Info' for email: {}", email);
+        userRepository.findByEmail(email).ifPresentOrElse(
+            user -> {
+                updateLastLogin(email);
+            },
+            () -> {
+                createUser(oidcUser, provider);
+            }
+        );
+    }
 
-            User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UserNotFoundException());
+    public void createUser(OidcUser oidcUser, String provider){
+        String email = oidcUser.getEmail();
+        String providerId = oidcUser.getAttribute("sub");
+        String fullName = oidcUser.getFullName();
+        String avatarUrl = oidcUser.getAttribute("picture");
 
-            return userMapper.toUserResponse(user);
+        if(checkExistedUser(email)){
+            throw new RuntimeException("user areadyextsited");
         }
 
-        log.error("No JWT found in Security Context");
-        throw new RuntimeException("Unauthorized");
+        Role role = roleService.findByCode("GUEST");
+
+        userRepository.save(
+            User.builder()
+                .provider(provider)
+                .providerId(providerId)
+                .email(email)
+                .fullName(fullName)
+                .avatarUrl(avatarUrl)
+                .emailVerified(true)
+                .lastLogin(Instant.now())
+                .roles(Set.of(role))
+                .build()
+        );
+
+       log.info("Đã lưu user mới: {}", email);
+
+    }
+
+    public UserResponse getMyInfo() {
+        
+        String email = JwtUtils.getCurrentUserEmail(); 
+            
+        log.info("Fetching 'My Info' for email: {}", email);
+
+        User user = userRepository.findByEmail(email)
+            .orElseThrow(() -> new UserNotFoundException());
+
+        return userMapper.toUserResponse(user);
     }
 
     public UserResponse getUserByEmail(String email){
@@ -67,7 +114,11 @@ public class UserService {
         return userMapper.toUserResponse(user);
     }
 
-    @Transactional
+    public User findUserEntityById(UUID id) {
+        return userRepository.findById(id)
+            .orElseThrow(() -> new UserNotFoundException());
+    }
+
     public void updateLastLogin(String email) {
         log.info("Updating last login timestamp for user: {}", email);
         
