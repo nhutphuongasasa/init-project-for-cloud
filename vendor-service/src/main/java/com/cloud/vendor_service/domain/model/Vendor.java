@@ -13,8 +13,10 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import com.cloud.vendor_service.domain.enums.VendorStatus;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.time.Instant;
+import java.util.Set;
 import java.util.UUID;
 
 
@@ -50,6 +52,8 @@ public class Vendor {
     @Column(name = "description", length = 500)
     private String description;
 
+    private String code;
+
     @Column(name = "owner_id", nullable = false, length = 100)
     private UUID ownerId;
 
@@ -66,11 +70,12 @@ public class Vendor {
     @Column(name = "updated_at")
     private Instant updatedAt;
 
-    @OneToOne(mappedBy = "vendor", cascade = {
-        CascadeType.PERSIST,
-        CascadeType.MERGE,
-        CascadeType.REFRESH,
-        CascadeType.DETACH
-    }, fetch = FetchType.LAZY, optional = false)
+    @OneToOne(mappedBy = "vendor")
+    @JsonIgnore
     private VendorProfile profile;
+
+    @JsonIgnore
+    @OneToMany(mappedBy = "vendor", fetch = FetchType.LAZY)
+    private Set<VendorMember> members;
+
 }

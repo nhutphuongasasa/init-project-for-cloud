@@ -7,13 +7,13 @@ import org.springframework.stereotype.Service;
 import com.cloud.vendor_service.infastructure.adapter.outbound.repository.VendorProfileRepository;
 import com.cloud.vendor_service.infastructure.adapter.outbound.repository.VendorRepository;
 import com.cloud.vendor_service.infastructure.exception.custom.VendorNotFoundException;
+import com.cloud.vendor_service.infastructure.mapper.VendorMapper;
 import com.cloud.vendor_service.application.dto.request.UpdateBasicInfoVendorRequest;
 import com.cloud.vendor_service.application.dto.request.UpdateProfileVendorRequest;
 import com.cloud.vendor_service.application.dto.response.VendorResponse;
-import com.cloud.vendor_service.application.mapper.VendorMapper;
 import com.cloud.vendor_service.domain.model.Vendor;
 import com.cloud.vendor_service.domain.model.VendorProfile;
-import com.cloud.vendor_service.common.utils.jwt.JwtUtils;
+import com.cloud.vendor_service.common.utils.security.AuthenticatedUserProvider;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,16 +26,17 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @Slf4j
 @AllArgsConstructor
-public class VendorProfileService {
+public class ProfileService {
     private final VendorProfileRepository vendorProfileRepository;
     private final VendorRepository vendorRepository;
     private final VendorMapper vendorMapper;    
-    private final JwtUtils jwtUtils;
+    private final AuthenticatedUserProvider userProvider;
 
-    // Cập nhật thông tin cơ bản
     public VendorResponse updateBasicInfo(UpdateBasicInfoVendorRequest request){
-        UUID vendorId = UUID.fromString(jwtUtils.getCurrentUserId());
+        UUID vendorId = userProvider.getVendorIdFromAuthentication();
+
         log.info("Updating basic info for vendorId={}", vendorId);
+
         Vendor existedVendor = vendorRepository.findById(vendorId)
             .orElseThrow(() -> {
                 log.error("Vendor not found with id={}", vendorId);
@@ -43,6 +44,7 @@ public class VendorProfileService {
             });
 
         vendorMapper.updateBasicInfoVendorFromDto(request, existedVendor);
+        
         log.debug("Basic info updated successfully for vendorId={}", vendorId);
         
         vendorRepository.save(existedVendor);
@@ -50,10 +52,11 @@ public class VendorProfileService {
         return vendorMapper.toResponse(existedVendor);
     }
 
-    // Cập nhật thông tin shop
     public VendorResponse updateProfile(UpdateProfileVendorRequest request){
-        UUID vendorId = UUID.fromString(jwtUtils.getCurrentUserId());
+        UUID vendorId = userProvider.getVendorIdFromAuthentication();
+
         log.info("Updating profile for vendorId={}", vendorId);
+        
         VendorProfile existedVendorProfile = vendorProfileRepository.findByVendorId(vendorId)
             .orElseThrow(() -> {
                 log.error("Vendor profile not found for vendorId={}", vendorId);
@@ -61,6 +64,7 @@ public class VendorProfileService {
             });
 
         vendorMapper.updateVendorProfileFromDto(request, existedVendorProfile);
+
         log.debug("Profile updated successfully for vendorId={}", vendorId);
         
         vendorProfileRepository.save(existedVendorProfile);
@@ -68,9 +72,9 @@ public class VendorProfileService {
         return vendorMapper.toResponse(existedVendorProfile.getVendor());
     }
 
-    // Lấy thông tin shop
     public VendorResponse getPublicVendorBySlug(String slug){
         log.info("Fetching public vendor by slug={}", slug);
+
         Vendor existedVendor = vendorRepository.findBySlug(slug)
             .orElseThrow(() -> {
                 log.error("Vendor not found with slug={}", slug);
@@ -78,6 +82,7 @@ public class VendorProfileService {
             });
 
         log.debug("Vendor fetched successfully with slug={}", slug);
+        
         return vendorMapper.toResponse(existedVendor);
     }
 }

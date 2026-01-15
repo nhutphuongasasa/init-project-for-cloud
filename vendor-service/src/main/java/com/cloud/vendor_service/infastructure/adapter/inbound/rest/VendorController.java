@@ -16,29 +16,25 @@ import com.cloud.vendor_service.application.dto.request.CreateRequest;
 import com.cloud.vendor_service.common.response.FormResponse;
 import com.cloud.vendor_service.application.dto.response.VendorProfileResponse;
 import com.cloud.vendor_service.application.dto.response.VendorResponse;
-import com.cloud.vendor_service.application.service.VendorRegistrationService;
+import com.cloud.vendor_service.application.service.VendorService;
 
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Validated
 @RestController
-@RequestMapping("/vendor-registration")
-public class VendorRegistrationController {
-    private final VendorRegistrationService vendorRegistrationService;
-
-    public VendorRegistrationController(
-        VendorRegistrationService vendorRegistrationService
-    ) {
-        this.vendorRegistrationService = vendorRegistrationService;
-    }
+@RequiredArgsConstructor
+@RequestMapping("/vendors")
+public class VendorController {
+    private final VendorService vendorService;
 
     @PreAuthorize("hasRole('VENDOR')")
     @PostMapping("/me/register")
     public ResponseEntity<FormResponse<VendorResponse>> registerVendor(@Valid @RequestBody CreateRequest request){
         log.info("Registering vendor: {}", request);
-        VendorResponse vendorResponse = vendorRegistrationService.registerVendor(request);
+        VendorResponse vendorResponse = vendorService.registerVendor(request);
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(FormResponse.<VendorResponse>builder()
                 .data(vendorResponse)
@@ -51,7 +47,7 @@ public class VendorRegistrationController {
     @GetMapping("/me")
     public ResponseEntity<FormResponse<VendorProfileResponse>> getMyVendor(){
         log.info("Getting my vendor");
-        VendorProfileResponse vendorResponse = vendorRegistrationService.getMyVendor();
+        VendorProfileResponse vendorResponse = vendorService.getMyVendor();
         return ResponseEntity.ok(FormResponse.<VendorProfileResponse>builder()
             .data(vendorResponse)
             .message("Get my vendor successfully")

@@ -1,4 +1,4 @@
-package com.cloud.order_service.application.exception;
+package com.cloud.order_service.infrastructure.exception;
 
 import com.cloud.order_service.common.exception.ResourceNotFoundException;
 

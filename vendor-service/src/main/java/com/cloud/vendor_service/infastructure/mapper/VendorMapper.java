@@ -1,8 +1,9 @@
-package com.cloud.vendor_service.application.mapper;
+package com.cloud.vendor_service.infastructure.mapper;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.MappingTarget;
 
+import com.cloud.vendor_service.application.dto.request.CreateRequest;
 import com.cloud.vendor_service.application.dto.request.UpdateBasicInfoVendorRequest;
 import com.cloud.vendor_service.application.dto.request.UpdateProfileVendorRequest;
 import com.cloud.vendor_service.application.dto.response.ProfileResponse;
@@ -24,4 +25,6 @@ public interface VendorMapper {
     ProfileResponse toProfileResponse(VendorProfile vendorProfile);
 
     void updateVendorProfileFromDto(UpdateProfileVendorRequest request, @MappingTarget VendorProfile vendorProfile);
+
+    Vendor toVendorEntity(CreateRequest request);
 }

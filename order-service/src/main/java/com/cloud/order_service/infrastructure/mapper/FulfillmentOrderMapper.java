@@ -1,4 +1,4 @@
-package com.cloud.order_service.application.mapper;
+package com.cloud.order_service.infrastructure.mapper;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.ReportingPolicy;

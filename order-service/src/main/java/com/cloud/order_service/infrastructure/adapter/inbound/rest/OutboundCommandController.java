@@ -1,7 +1,6 @@
 package com.cloud.order_service.infrastructure.adapter.inbound.rest;
 
 import java.time.Instant;
-import java.util.List;
 import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
@@ -14,12 +13,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.cloud.order_service.application.dto.OrphanCheckResult;
 import com.cloud.order_service.application.dto.request.ApproveOrderRequest;
 import com.cloud.order_service.application.dto.request.CancelOrderRequest;
 import com.cloud.order_service.application.dto.request.CompletePickingRequest;
-import com.cloud.order_service.application.dto.request.CompleteReceivingRequest;
-import com.cloud.order_service.application.dto.request.CreateInboundRequest;
 import com.cloud.order_service.application.dto.request.CreateOrderRequest;
 import com.cloud.order_service.application.dto.request.ShipOrderRequest;
 import com.cloud.order_service.application.dto.request.UpdatePickedQuantityRequest;
@@ -27,7 +23,7 @@ import com.cloud.order_service.application.dto.request.UpdateQuantiryReceivedReq
 import com.cloud.order_service.application.dto.response.InboundOrderResponse;
 import com.cloud.order_service.application.dto.response.OrderDetailResponse;
 import com.cloud.order_service.application.dto.response.OrderResponse;
-import com.cloud.order_service.application.service.OrderCommandService;
+import com.cloud.order_service.application.service.OutboundCommandService;
 import com.cloud.order_service.common.response.FormResponse;
 
 import jakarta.validation.Valid;
@@ -37,28 +33,14 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/orders-command")
-public class OrderCommandController {
-    private final OrderCommandService orderCommandService;
-
-    @PostMapping("/cleanupOrphanReserved")
-    public ResponseEntity<FormResponse<List<OrphanCheckResult>>> checkListOrphanReserved(
-        @RequestBody List<OrphanCheckResult> request
-    ){
-        List<OrphanCheckResult> result = orderCommandService.searchOrphanReserved(request);
-
-        return ResponseEntity.ok(FormResponse.<List<OrphanCheckResult>>builder()
-                    .data(result)
-                    .message("check orphan sucessfully")
-                    .timestamp(Instant.now())
-                    .build()
-        );
-    }
+public class OutboundCommandController {
+    private final OutboundCommandService outboundCommandService;
 
     @PostMapping
     public ResponseEntity<FormResponse<OrderResponse>> createOrder(
         @Valid @RequestBody CreateOrderRequest request
     ) {
-        OrderResponse response = orderCommandService.createOrder(request);
+        OrderResponse response = outboundCommandService.createOrder(request);
        
         return ResponseEntity.ok(FormResponse.<OrderResponse>builder()
                 .data(response)
@@ -71,7 +53,7 @@ public class OrderCommandController {
     public ResponseEntity<FormResponse<OrderResponse>> approveOrder(
         @RequestBody ApproveOrderRequest request
     ) {
-        OrderResponse response = orderCommandService.approveOrder(request.getOrderId(), request.getVendorId());
+        OrderResponse response = outboundCommandService.approveOrder(request.getOrderId(), request.getVendorId());
         
         return ResponseEntity.ok(FormResponse.<OrderResponse>builder()
                 .data(response)
@@ -84,7 +66,7 @@ public class OrderCommandController {
     public ResponseEntity<FormResponse<OrderResponse>> shipOrder(
         @RequestBody ShipOrderRequest request
     ) {
-        OrderResponse response = orderCommandService.shipOrder(request.getOrderId(), request.getVendorId());
+        OrderResponse response = outboundCommandService.shipOrder(request.getOrderId(), request.getVendorId());
         
         return ResponseEntity.ok(FormResponse.<OrderResponse>builder()
                 .data(response)
@@ -98,7 +80,7 @@ public class OrderCommandController {
         @PathVariable Long id,
         @RequestBody UpdateQuantiryReceivedRequest request
     ) {
-        InboundOrderResponse response = orderCommandService.updateQuantityReceived(id, request);
+        InboundOrderResponse response = outboundCommandService.updateQuantityReceived(id, request);
         
         return ResponseEntity.ok(FormResponse.<InboundOrderResponse>builder()
                 .data(response)
@@ -111,7 +93,7 @@ public class OrderCommandController {
     public ResponseEntity<FormResponse<OrderResponse>> cancelOrder(
         @RequestBody CancelOrderRequest request
     ) {
-        OrderResponse response = orderCommandService.cancelOrder(request.getOrderId(), request.getVendorId(), request);
+        OrderResponse response = outboundCommandService.cancelOrder(request.getOrderId(), request.getVendorId(), request);
         
         return ResponseEntity.ok(FormResponse.<OrderResponse>builder()
                 .data(response)
@@ -125,7 +107,7 @@ public class OrderCommandController {
         @PathVariable Long id,
         @Valid @RequestBody UpdatePickedQuantityRequest request
     ) {
-        OrderDetailResponse response = orderCommandService.updatePickedQuantity(id, request.getQuantityPick());
+        OrderDetailResponse response = outboundCommandService.updatePickedQuantity(id, request.getQuantityPick());
         
         return ResponseEntity.ok(FormResponse.<OrderDetailResponse>builder()
                 .data(response)
@@ -138,7 +120,7 @@ public class OrderCommandController {
     public ResponseEntity<FormResponse<OrderResponse>> startPicking(
         @PathVariable UUID id
     ) {
-        OrderResponse response = orderCommandService.startPicking(id);
+        OrderResponse response = outboundCommandService.startPicking(id);
         
         return ResponseEntity.ok(FormResponse.<OrderResponse>builder()
                 .data(response)
@@ -152,7 +134,7 @@ public class OrderCommandController {
         @PathVariable UUID id,
         @Valid @RequestBody CompletePickingRequest request
     ) {
-        OrderResponse response = orderCommandService.completePicking(id, request);
+        OrderResponse response = outboundCommandService.completePicking(id, request);
         
         return ResponseEntity.ok(FormResponse.<OrderResponse>builder()
                 .data(response)
@@ -165,7 +147,7 @@ public class OrderCommandController {
     public ResponseEntity<FormResponse<OrderResponse>> startPacking(
         @PathVariable UUID id
     ) {
-        OrderResponse response = orderCommandService.startPacking(id);
+        OrderResponse response = outboundCommandService.startPacking(id);
         
         return ResponseEntity.ok(FormResponse.<OrderResponse>builder()
                 .data(response)
@@ -178,7 +160,7 @@ public class OrderCommandController {
     public ResponseEntity<FormResponse<OrderResponse>> completePacking(
         @PathVariable UUID id
     ) {
-        OrderResponse response = orderCommandService.completePacking(id);
+        OrderResponse response = outboundCommandService.completePacking(id);
         
         return ResponseEntity.ok(FormResponse.<OrderResponse>builder()
                 .data(response)
@@ -186,73 +168,4 @@ public class OrderCommandController {
                 .timestamp(Instant.now())
                 .build());
     }
-
-
-    @PostMapping("/inbound")
-    public ResponseEntity<FormResponse<InboundOrderResponse>> createInbound(
-        @Valid @RequestBody CreateInboundRequest request
-    ) {
-        InboundOrderResponse response = orderCommandService.createInbound(request);
-        
-        return ResponseEntity.ok(FormResponse.<InboundOrderResponse>builder()
-                .data(response)
-                .message("Inbound created successfully")
-                .timestamp(Instant.now())
-                .build());
-    }
-
-    @PostMapping("/{id}/confirm-inbound")
-    public ResponseEntity<FormResponse<InboundOrderResponse>> confirmInbound(
-        @PathVariable UUID id
-    ) {
-        InboundOrderResponse response = orderCommandService.confirmInbound(id);
-        
-        return ResponseEntity.ok(FormResponse.<InboundOrderResponse>builder()
-                .data(response)
-                .message("Inbound confirmed successfully")
-                .timestamp(Instant.now())
-                .build());
-    }
-
-    @PostMapping("/{id}/start-receiving")
-    public ResponseEntity<FormResponse<InboundOrderResponse>> startReceiving(
-        @PathVariable UUID id
-    ) {
-        InboundOrderResponse response = orderCommandService.startReceiving(id);
-        
-        return ResponseEntity.ok(FormResponse.<InboundOrderResponse>builder()
-                .data(response)
-                .message("Inbound started receiving successfully")
-                .timestamp(Instant.now())
-                .build());
-    }
-
-    @PostMapping("/{id}/complete-receiving")
-    public ResponseEntity<FormResponse<InboundOrderResponse>> completeReceiving(
-        @PathVariable UUID id,
-        @Valid @RequestBody CompleteReceivingRequest request
-    ) {
-        InboundOrderResponse response = orderCommandService.completeReceiving(id, request);
-        
-        return ResponseEntity.ok(FormResponse.<InboundOrderResponse>builder()
-                .data(response)
-                .message("Inbound completed receiving successfully")
-                .timestamp(Instant.now())
-                .build());
-    }
-
-    @PostMapping("/{id}/cancel-inbound")
-    public ResponseEntity<FormResponse<InboundOrderResponse>> cancelInbound(
-        @PathVariable UUID id
-    ) {
-        InboundOrderResponse response = orderCommandService.cancelInbound(id);
-        
-        return ResponseEntity.ok(FormResponse.<InboundOrderResponse>builder()
-                .data(response)
-                .message("Inbound cancelled successfully")
-                .timestamp(Instant.now())
-                .build());
-    }
-
-    
 }

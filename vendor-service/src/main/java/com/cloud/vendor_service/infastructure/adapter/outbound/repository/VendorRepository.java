@@ -13,6 +13,7 @@ import org.springframework.stereotype.Repository;
 
 import com.cloud.vendor_service.domain.enums.VendorStatus;
 import com.cloud.vendor_service.domain.model.Vendor;
+import org.springframework.lang.NonNull;
 
 @Repository
 public interface VendorRepository extends JpaRepository<Vendor, UUID>, JpaSpecificationExecutor<Vendor> {
@@ -20,6 +21,8 @@ public interface VendorRepository extends JpaRepository<Vendor, UUID>, JpaSpecif
     Optional<Vendor> findByIdAndStatus(UUID id, VendorStatus status);
 
     Optional<List<Vendor>> findByStatus(VendorStatus status);
+
+    boolean existsById(@NonNull UUID id);
     
     boolean existsBySlug(String slug);
     boolean existsBySlugAndIdNot(String slug, UUID excludedId);

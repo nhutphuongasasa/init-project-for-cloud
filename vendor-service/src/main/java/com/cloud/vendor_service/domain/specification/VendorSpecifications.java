@@ -26,9 +26,6 @@ public class VendorSpecifications {
             if (request.getSlug() != null) {
                 predicates.add(cb.equal(root.get("slug"), request.getSlug()));
             }
-            // if (request.getOwnerUserId() != null) {
-                // predicates.add(cb.equal(root.get("ownerUserId"), request.getOwnerUserId()));
-            // }
             if (request.getStatus() != null) {
                 predicates.add(cb.equal(root.get("status"), request.getStatus()));
             }

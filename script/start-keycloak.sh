@@ -1,6 +1,13 @@
+ngbt3232@keycloak:~$ cat start1.sh 
 #!/bin/bash
 
 set -e
+RABBITMQ_HOST="fuji.lmq.cloudamqp.com"
+RABBITMQ_USER="tdteuzte"
+RABBITMQ_PASS="lIrc_ZdOdoQZ3haXShEgsl8EpOn2jnXG"
+RABBITMQ_VHOST="tdteuzte"
+RABBITMQ_PORT="5672"
+
 GREEN='\033[0;32m'; 
 YELLOW='\033[1;33m'; 
 RED='\033[0;31m'; 
@@ -18,7 +25,7 @@ docker stop keycloak 2>/dev/null || true
 docker rm keycloak 2>/dev/null || true
 
 echo -e "${YELLOW}Cấu hình Nginx${NC}"
-sudo tee /etc/nginx/sites-available/keycloak > /dev/null << EOF
+sudo tee /etc/nginx/sites-available/keycloak > /dev/null << 'EOF'
 server {
     listen 80;
     server_name $DOMAIN;
@@ -56,6 +63,11 @@ server {
 EOF
 sudo nginx -t && sudo systemctl reload nginx && echo -e "${GREEN}Nginx OK!${NC}"
 
+echo -e "${YELLOW}Copy file jar vao thu muc ${NC}"
+mkdir -p ./keycloak-plugins
+
+cp ./plugin.jar ./keycloak-plugins/ 2>/dev/null || echo "Chưa thấy JAR, dùng cái cũ"
+
 echo -e "${YELLOW}Khởi động Keycloak 25.0.6 ${NC}"
 docker run -d \
   --name keycloak \
@@ -67,16 +79,21 @@ docker run -d \
   -e KC_HOSTNAME=$DOMAIN \
   -e KC_PROXY=edge \
   -e KC_HTTP_ENABLED=true \
+  -e RABBITMQ_HOST=$RABBITMQ_HOST \
+  -e RABBITMQ_USER=$RABBITMQ_USER \
+  -e RABBITMQ_PASS=$RABBITMQ_PASS \
+  -e RABBITMQ_VHOST=$RABBITMQ_VHOST \
+  -e RABBITMQ_PORT=$RABBITMQ_PORT \
   -e KC_DB=postgres \
-  -e KC_DB_URL="jdbc:postgresql://ep-orange-forest-a1cnwb51-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require" \
+  -e KC_DB_URL="jdbc:postgresql://ep-orange-sky-a1b41w2u-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require" \
   -e KC_DB_USERNAME=neondb_owner \
-  -e KC_DB_PASSWORD=npg_AYn3F4vBjXxg \
-  -e RABBITMQ_HOST=fuji.lmq.cloudamqp.com \
-  -e RABBITMQ_USER=tdteuzte \
-  -e RABBITMQ_PASS=lIrc_ZdOdoQZ3haXShEgsl8EpOn2jnXG \
-  -e RABBITMQ_VHOST=tdteuzte \
+  -e KC_DB_PASSWORD=npg_nZthN59kXqbf \
+  \
+  --mount type=bind,source="$(pwd)/keycloak-plugins",target=/opt/keycloak/providers \
+  \
   quay.io/keycloak/keycloak:25.0.6 \
-  start
+  start 
+
 
 echo -e "${YELLOW}Đang khởi tạo database & admin user... (80-100s lần đầu)${NC}"
 sleep 8
@@ -86,7 +103,14 @@ for i in {1..14}; do
 done
 echo -e "${CYAN} ▰▰▰▰▰▰▰▰▰▰ 100%${NC}"
 
-echo
+echo -e "${YELLOW}Build lại để nhận plugin (QUAN TRỌNG NHẤT!)${NC}"
+docker exec -it keycloak /opt/keycloak/bin/kc.sh build --db=postgres || echo "Build lỗi nhẹ, thử lần 2..."
+sleep 5
+docker restart keycloak
+
+echo -e "${YELLOW}Đợi restart xong...${NC}"
+sleep 30
+
 echo -e "${BLUE}${BOLD}ĐANG KIỂM TRA HOÀN CHỈNH...${NC}"
 sleep 2
 
@@ -120,3 +144,4 @@ echo "╔═══════════════════════�
 echo "║                      KEYCLOAK ĐÃ CHẠY HOÀN HẢO!                   ║"
 echo "║                         https://$DOMAIN                         ║"
 echo "╚═══════════════════════════════════════════════════════════════════╝${NC}"
+phuongbt3232@keycloak:~$ 

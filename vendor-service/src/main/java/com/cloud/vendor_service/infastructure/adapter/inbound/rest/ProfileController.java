@@ -9,8 +9,10 @@ import org.springframework.web.bind.annotation.*;
 import com.cloud.vendor_service.application.dto.request.UpdateBasicInfoVendorRequest;
 import com.cloud.vendor_service.application.dto.request.UpdateProfileVendorRequest;
 import com.cloud.vendor_service.application.dto.response.VendorResponse;
-import com.cloud.vendor_service.application.service.VendorProfileService;
+import com.cloud.vendor_service.application.service.ProfileService;
 import com.cloud.vendor_service.common.response.FormResponse;
+
+import lombok.RequiredArgsConstructor;
 
 /**
  * @author nhutphuong
@@ -19,19 +21,16 @@ import com.cloud.vendor_service.common.response.FormResponse;
  */
 @RestController
 @RequestMapping("/profile")
-public class VendorProfileController {
-    private final VendorProfileService vendorProfileService;
-
-    public VendorProfileController(VendorProfileService vendorProfileService) {
-        this.vendorProfileService = vendorProfileService;
-    }
+@RequiredArgsConstructor
+public class ProfileController {
+    private final ProfileService profileService;
 
     @PutMapping("/basic-info")
     public ResponseEntity<FormResponse<VendorResponse>> updateBasicInfo(
             @RequestBody UpdateBasicInfoVendorRequest request) {
         return ResponseEntity.ok(
             FormResponse.<VendorResponse>builder()
-                .data(vendorProfileService.updateBasicInfo(request))
+                .data(profileService.updateBasicInfo(request))
                 .message("Update basic info successfully")
                 .timestamp(Instant.now())
                 .build()
@@ -43,7 +42,7 @@ public class VendorProfileController {
             @RequestBody UpdateProfileVendorRequest request) {
         return ResponseEntity.ok(
             FormResponse.<VendorResponse>builder()
-                .data(vendorProfileService.updateProfile(request))
+                .data(profileService.updateProfile(request))
                 .message("Update profile successfully")
                 .timestamp(Instant.now())
                 .build()    
@@ -55,7 +54,7 @@ public class VendorProfileController {
     public ResponseEntity<FormResponse<VendorResponse>> getPublicVendorBySlug(@PathVariable String slug) {
         return ResponseEntity.ok(
             FormResponse.<VendorResponse>builder()
-                .data(vendorProfileService.getPublicVendorBySlug(slug))
+                .data(profileService.getPublicVendorBySlug(slug))
                 .message("Get public vendor by slug successfully")
                 .timestamp(Instant.now())
                 .build()

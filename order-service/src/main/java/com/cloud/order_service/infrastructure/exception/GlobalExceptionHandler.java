@@ -1,4 +1,4 @@
-package com.cloud.order_service.application.exception;
+package com.cloud.order_service.infrastructure.exception;
 
 import java.time.Instant;
 
