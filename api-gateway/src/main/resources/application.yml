@@ -17,138 +17,126 @@ spring:
       timeout: 15h
   application:
     name: api-gateway
-
   cloud:
     gateway:
+      default-filters:
+        - PreserveHostHeader 
+
       httpclient:
-        connect-timeout: 2000 # 2 giây
+        connect-timeout: 2000
         response-timeout: 5s
         pool:
           type: elastic
           idle-timeout: 30s
-      default-filters:
-        - TokenRelay=,includeAccessToken=true
+
       discovery:
         locator:
           enabled: true
           lower-case-service-id: true
+
       routes:
-        - id: vendor-service 
-          uri: lb://vendor-service
-          predicates:
-            - Path=/api/vendor/**
-          filters:
-            - name: StripPrefix
-              args:
-                parts: 2
-        - id: product-service
-          uri: lb://product-service
-          predicates:
-            - Path=/api/product/**
-          filters:
-            - name: StripPrefix
-              args:
-                parts: 2
-        - id: inventory-service
-          uri: lb://inventory-service
-          predicates:
-            - Path=/api/inventory/**
-          filters:
-            - name: StripPrefix
-              args:
-                parts: 2
-        - id: order-service
-          uri: lb://order-service
-          predicates:
-            - Path=/api/order/**
-          filters:
-            - name: StripPrefix
-              args:
-                parts: 2
         - id: auth-service
           uri: lb://auth-service
           predicates:
             - Path=/api/auth/**
           filters:
-            - name: StripPrefix
-              args:
-                parts: 2
+            - StripPrefix=2
+            - AddRequestHeader=X-Forwarded-Host, localhost:8000
+            - AddRequestHeader=X-Forwarded-Port, 8000
+            - AddRequestHeader=X-Forwarded-Proto, http
+            - AddRequestHeader=X-Forwarded-Prefix, /api/auth
+            - DedupeResponseHeader=Access-Control-Allow-Credentials Set-Cookie
 
-  
-  # session:
-  #   store-type: redis
-  #   timeout: 30m
-  #   redis:
-  #     namespace: gateway:sessions
-  # data:
-  #   redis:
-  #     cluster:
-  #       nodes:
-  #         - redis-node-1:6379
-  #         - redis-node-2:6379
-  #         - redis-node-3:6379
-  #         - redis-node-4:6379
-  #         - redis-node-5:6379
-  #         - redis-node-6:6379
-  #     max-redirects: 7
-  #     timeout: 7000ms
-  #     lettuce:
-  #       pool:
-  #         max-active: 15
-  #         max-idle: 5
-  #         min-idle: 1
-  #         max-wait: 2000ms
+        - id: vendor-service 
+          uri: lb://vendor-service
+          predicates:
+            - Path=/api/vendor/**
+          filters:
+            - StripPrefix=2
 
-  security:
-    oauth2:
-      client:
-        registration:
-          keycloak:
-            provider: keycloak
-            client-id: user-app
-            client-secret: wtJeckwraiBSmcRPcoVmu34dR6BY3ujx
-            authorization-grant-type: authorization_code
-            redirect-uri: "{baseUrl}/login/oauth2/code/keycloak"
-            scope: openid, profile, email
-        provider:
-          keycloak:
-            issuer-uri: https://keycloak.icuture.icu/realms/cloud
+        - id: product-service
+          uri: lb://product-service
+          predicates:
+            - Path=/api/product/**
+          filters:
+            - StripPrefix=2
+
+        - id: inventory-service
+          uri: lb://inventory-service
+          predicates:
+            - Path=/api/inventory/**
+          filters:
+            - StripPrefix=2
+
+        - id: order-service
+          uri: lb://order-service
+          predicates:
+            - Path=/api/order/**
+          filters:
+            - StripPrefix=2
+  # cloud:
+  #   gateway:
+  #     default-filters:
+  #       - PreserveHostHeader #
+  #     server:
+  #       webflux: # <-- ĐÂY LÀ CẤP ĐỘ MỚI BẮT BUỘC
+  #         httpclient:
+  #           connect-timeout: 2000
+  #           response-timeout: 5s
+  #           pool:
+  #             type: elastic
+  #             idle-timeout: 30s
+  #         discovery:
+  #           locator:
+  #             enabled: true
+  #             lower-case-service-id: true
+  #         routes:
+  #           - id: vendor-service 
+  #             uri: lb://vendor-service
+  #             predicates:
+  #               - Path=/api/vendor/**
+  #             filters:
+  #               - name: StripPrefix
+  #                 args:
+  #                   parts: 2
+  #           - id: product-service
+  #             uri: lb://product-service
+  #             predicates:
+  #               - Path=/api/product/**
+  #             filters:
+  #               - name: StripPrefix
+  #                 args:
+  #                   parts: 2
+  #           - id: inventory-service
+  #             uri: lb://inventory-service
+  #             predicates:
+  #               - Path=/api/inventory/**
+  #             filters:
+  #               - name: StripPrefix
+  #                 args:
+  #                   parts: 2
+  #           - id: order-service
+  #             uri: lb://order-service
+  #             predicates:
+  #               - Path=/api/order/**
+  #             filters:
+  #               - name: StripPrefix
+  #                 args:
+  #                   parts: 2
+  #           - id: auth-service
+  #             uri: lb://auth-service
+  #             predicates:
+  #               - Path=/api/auth/**
+  #             filters:
+  #               - name: StripPrefix
+  #                 args:
+  #                   parts: 2
+  #               - AddRequestHeader=X-Forwarded-Host, localhost:8000
+  #               - AddRequestHeader=X-Forwarded-Proto, http
+  #               - AddRequestHeader=X-Forwarded-Prefix, /api/auth
+  #               - AddRequestHeader=X-Forwarded-Port, 8000
   main:
     web-application-type: reactive
-
-  # ------------------- LOGGING -------------------
-# logging:
-#   level:
-#     root: INFO
-
-#     # ==== HTTP NETTY (quan trọng để thấy request/response) ====
-#     reactor.netty.http.client: DEBUG
-#     reactor.netty.http.server: DEBUG
-#     reactor.netty.channel: DEBUG
-#     reactor.netty.transport: DEBUG
-
-#     # ==== Spring Cloud Gateway (route, filter, predicate) ====
-#     org.springframework.cloud.gateway: TRACE
-#     org.springframework.cloud.gateway.route.RouteDefinitionLocator: TRACE
-#     org.springframework.cloud.gateway.handler.RoutePredicateHandlerMapping: TRACE
-#     org.springframework.cloud.gateway.filter: TRACE
-#     org.springframework.cloud.gateway.support: TRACE
-
-#     # ==== Spring WebFlux (để thấy request vào Gateway) ====
-#     org.springframework.web: DEBUG
-#     org.springframework.web.reactive: DEBUG
-#     org.springframework.http.server.reactive: DEBUG
-
-#     # ==== Security (nếu có OAuth2/Spring Security) ====
-#     org.springframework.security: DEBUG
-#     org.springframework.security.web.server: DEBUG
-
-#     # ==== Nacos client (để thấy Gateway lookup instance) ====
-#     com.alibaba.nacos: DEBUG
-#     com.alibaba.cloud.nacos: DEBUG
-
-#     # ==== Log package dự án của bạn ====
-#     com.cloud.api_gateway: DEBUG
 
 logging:
   level:
@@ -163,8 +151,6 @@ logging:
   pattern:
     console: "%d{HH:mm:ss.SSS} %-5level [%thread] %logger{36} - %msg%n"
 
-
-# ------------------- ACTUATOR & REACTIVE HEALTH (Đã sửa) -------------------
 management:
   endpoints:
     web:
@@ -184,7 +170,6 @@ management:
     mappings:
       health: healthcheck  
       
-  # ------------------- HEALTH INDICATORS (Không cần 'defaults: enabled: true') -------------------
   health:
     diskspace:
       enabled: true
@@ -196,13 +181,3 @@ management:
     sampling:
       probability: 1.0 
       
-  # zipkin:
-  #   tracing:
-  #     endpoint: http://zipkin:9411/api/v2/spans
-  #     connect-timeout: 1s
-  #     read-timeout: 5s
-
-# phuongasasa:
-#   upstash:
-#     url: rediss://default:ATeeAAIncDI5YTZmMTc0ZjY4ZTc0N2I3YjQwMDBjNzExN2ZmYjk5M3AyMTQyMzg@driven-stallion-14238.upstash.io:6379
-    

@@ -3,14 +3,14 @@
 import { LogIn } from "lucide-react";
 
 export default function Page() {
-  const handleLogin = () => {
-    // XÓA SẠCH session cũ trước khi login → không bao giờ bị kẹt
-    document.cookie = "JSESSIONID=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
-    // document.cookie = "JSESSIONID=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; domain=localhost";
-    localStorage.clear();
-
-    window.location.href = `${process.env.NEXT_PUBLIC_API_BASE_URL}/okela`;
-  };
+const handleLogin = () => {
+  const authUrl = "http://localhost:8000/api/auth/oauth2/authorize" +
+                  "?response_type=code" +
+                  "&client_id=warehouse-client" +
+                  "&scope=openid profile email" +
+                  "&redirect_uri=http://localhost:3000/auth/callback";
+  window.location.href = authUrl;
+};
 
   return (
     <div className="min-h-screen bg-gray-100 py-6 flex flex-col justify-center sm:py-12">

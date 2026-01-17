@@ -27,28 +27,21 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class LoginSuccessHandler extends SavedRequestAwareAuthenticationSuccessHandler{
     private final AppProperties appProperties;
-    private final UserService userService;
+    // private final UserService userService;
 
-    @Override
-    public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
-        Authentication authentication) throws IOException, ServletException {
-        
-        log.info("Chặng 1: Login Google thành công, đang xử lý lưu User...");
-        
-        if(authentication instanceof OAuth2AuthenticationToken oauthToken){
-            String provider = oauthToken.getAuthorizedClientRegistrationId();
+@Override
+public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
+    Authentication authentication) throws IOException, ServletException {
+    
+    log.info("Chặng 1: Login Google thành công.");
 
-            Object principal = oauthToken.getPrincipal();
+    // 1. KHÔNG dùng setAlwaysUseDefaultTargetUrl(true)
+    // 2. Chỉ thiết lập URL mặc định nếu không tìm thấy yêu cầu uỷ quyền nào trước đó
+    this.setDefaultTargetUrl(appProperties.getFrontend().getCallbackUrl());
 
-            if(principal instanceof OidcUser oidcUser){
-                userService.syncUser(oidcUser, provider);
-            }
-        }
-        this.setDefaultTargetUrl(appProperties.getFrontend().getCallbackUrl());
-        this.setAlwaysUseDefaultTargetUrl(true); 
+    log.info("Xử lý thành công. Spring sẽ tự động kiểm tra SavedRequest để cấp Auth Code.");
 
-        log.info("Login thành công. Đang đẩy User về trang xử lý code: {}", appProperties.getFrontend().getCallbackUrl());
-
-        super.onAuthenticationSuccess(request, response, authentication);
-    }
+    // Gọi super để SavedRequestAwareAuthenticationSuccessHandler làm nốt phần việc thông minh của nó
+    super.onAuthenticationSuccess(request, response, authentication);
+}
 }

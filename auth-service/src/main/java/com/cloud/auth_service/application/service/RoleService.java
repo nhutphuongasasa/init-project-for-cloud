@@ -21,6 +21,11 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * @author nhutphuong
+ * @since 2026/1/12 21:05h
+ * @version 1
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -28,14 +33,14 @@ public class RoleService {
     private final RoleRepository roleRepository;
     private final RoleMapper roleMapper;
     private final UserRepository userRepository;
-    private final UserService userService;
     private final JwtUtils jwtUtils;
 
     @Transactional
-    public void assignOfficialRole(UUID userId, String newRoleCode) {
+    public void assignOfficialRole(@NonNull UUID userId, String newRoleCode) {
         log.info("Approving user ID {} with role {}", userId, newRoleCode);
 
-        User user = userService.findUserEntityById(userId);
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new UserNotFoundException());
 
         Role newRole = roleRepository.findByCode(newRoleCode)
                 .orElseThrow(() -> new RoleNotFoundException());
@@ -54,10 +59,11 @@ public class RoleService {
     }
 
     @Transactional
-    public void addRoleToUser(UUID userId, String roleCode) {
+    public void addRoleToUser(@NonNull UUID userId, String roleCode) {
         log.info("Adding role {} to user ID: {}", roleCode, userId);
 
-        User user = userService.findUserEntityById(userId);
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new UserNotFoundException());
 
         Role role = roleRepository.findByCode(roleCode)
             .orElseThrow(() -> new RoleNotFoundException());
@@ -69,10 +75,11 @@ public class RoleService {
     }
 
     @Transactional
-    public void removeRoleFromUser(UUID userId, String roleCode) {
+    public void removeRoleFromUser(@NonNull UUID userId, String roleCode) {
         log.info("Removing role {} from user ID: {}", roleCode, userId);
 
-        User user = userService.findUserEntityById(userId);
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new UserNotFoundException());
 
         Role roleToRemove = user.getRoles().stream()
                 .filter(r -> r.getCode().equals(roleCode))
@@ -124,11 +131,12 @@ public class RoleService {
     }
 
     @Transactional(readOnly = true)
-    public List<RoleResponse> getRolesByUserId(UUID userId) {
+    public List<RoleResponse> getRolesByUserId(@NonNull UUID userId) {
         log.info("Fetching roles for user ID: {}", userId);
         
-        User user = userService.findUserEntityById(userId);
-
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new UserNotFoundException());
+        
         return user.getRoles().stream()
             .map(roleMapper::toRoleResponse)
             .toList();
@@ -148,7 +156,7 @@ public class RoleService {
     }
 
     @Transactional
-    public void deleteRole(UUID roleId) {
+    public void deleteRole(@NonNull UUID roleId) {
         Role role = roleRepository.findById(roleId)
             .orElseThrow(() -> new RoleNotFoundException());
 

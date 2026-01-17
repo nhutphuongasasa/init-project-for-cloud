@@ -21,11 +21,11 @@
 	</properties>
 	<dependencies>
 	<!-- pom.xml của api-gateway -->
-<dependency>
+<!-- <dependency>
     <groupId>org.springdoc</groupId>
     <artifactId>springdoc-openapi-starter-webflux-ui</artifactId>
     <version>2.8.14</version>
-</dependency>
+</dependency> -->
 
 
 	<!-- ================================webflux =============================== -->
@@ -46,10 +46,10 @@
 			<groupId>io.micrometer</groupId>
 			<artifactId>micrometer-tracing-bridge-brave</artifactId>
 		</dependency>
-		<dependency>
+		<!-- <dependency>
 			<groupId>io.zipkin.reporter2</groupId>
 			<artifactId>zipkin-reporter-brave</artifactId>
-		</dependency>
+		</dependency> -->
 	<!-- ================================logging =============================== -->
 
 	<!-- ================================spring cloud =============================== -->
@@ -57,14 +57,14 @@
 			<groupId>org.springframework.cloud</groupId>
 			<artifactId>spring-cloud-starter-circuitbreaker-reactor-resilience4j</artifactId>
 		</dependency>
-		<!-- <dependency>
+		<dependency>
 			<groupId>org.springframework.cloud</groupId>
 			<artifactId>spring-cloud-starter-gateway-server-webflux</artifactId>
-		</dependency> -->
-		<dependency>
+		</dependency>
+		<!-- <dependency>
   <groupId>org.springframework.cloud</groupId>
   <artifactId>spring-cloud-starter-gateway</artifactId>
-</dependency>
+</dependency> -->
 <!-- Spring Cloud LoadBalancer -->
 <dependency>
     <groupId>org.springframework.cloud</groupId>
@@ -79,10 +79,10 @@
 			<!-- <groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
 		</dependency> -->
-		<dependency>
+		<!-- <dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-oauth2-client</artifactId>
-		</dependency>
+		</dependency> -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-security</artifactId>

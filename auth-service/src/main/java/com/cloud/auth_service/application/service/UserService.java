@@ -1,7 +1,6 @@
 package com.cloud.auth_service.application.service;
 
 import java.time.Instant;
-import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
@@ -9,6 +8,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.cloud.auth_service.application.dto.response.UserResponse;
@@ -22,11 +22,6 @@ import com.cloud.auth_service.common.utils.jwt.JwtUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * @author nhutphuong
- * @since 2026/1/12 20:05h
- * @version 1
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -40,34 +35,47 @@ public class UserService {
         return userRepository.existsByEmail(email);
     }
 
+    /**
+     * Sync user from OAuth provider (create or update)
+     * REQUIRES_NEW ensures this runs in separate transaction
+     */
     @Transactional
     public void syncUser(OidcUser oidcUser, String provider) {
         String email = oidcUser.getEmail();
         
-        userRepository.findByEmail(email).ifPresentOrElse(
-            user -> {
-                updateLastLogin(email);
-            },
-            () -> {
-                createUser(oidcUser, provider);
-            }
-        );
+        log.info("🔍 Starting sync for user: {}", email);
+        
+        if (userRepository.existsByEmail(email)) {
+            log.info("✅ User exists, updating last login: {}", email);
+            updateLastLoginInternal(email);
+        } else {
+            log.info("➕ User not found, start creating new user: {}", email);
+            createUserInternal(oidcUser, provider);
+        }
+        
+        log.info("✅ Sync completed for user: {}", email);
     }
 
-    public void createUser(OidcUser oidcUser, String provider){
+    /**
+     * Internal method to create user (called within syncUser transaction)
+     */
+    private void createUserInternal(OidcUser oidcUser, String provider) {
         String email = oidcUser.getEmail();
         String providerId = oidcUser.getAttribute("sub");
         String fullName = oidcUser.getFullName();
         String avatarUrl = oidcUser.getAttribute("picture");
 
-        if(checkExistedUser(email)){
-            throw new RuntimeException("user areadyextsited");
+        log.info("🔍 Finding GUEST role...");
+        Role role = roleService.findByCode("ROLE_GUEST");
+        
+        if (role == null) {
+            log.error("❌ GUEST role not found in database!");
+            throw new RuntimeException("GUEST role not found");
         }
+        
+        log.info("✅ GUEST role found: {} (ID: {})", role.getName(), role.getId());
 
-        Role role = roleService.findByCode("GUEST");
-
-        userRepository.save(
-            User.builder()
+        User newUser = User.builder()
                 .provider(provider)
                 .providerId(providerId)
                 .email(email)
@@ -76,29 +84,61 @@ public class UserService {
                 .emailVerified(true)
                 .lastLogin(Instant.now())
                 .roles(Set.of(role))
-                .build()
-        );
+                .build();
 
-       log.info("Đã lưu user mới: {}", email);
+        User savedUser = userRepository.save(newUser);
+        log.info("✅ User created successfully with ID: {} for email: {}", savedUser.getId(), email);
+    }
 
+    /**
+     * Internal method to update last login (called within syncUser transaction)
+     */
+    private void updateLastLoginInternal(String email) {
+        userRepository.findByEmail(email).ifPresent(user -> {
+            user.setLastLogin(Instant.now());
+            userRepository.save(user);
+            log.info("✅ Last login updated for: {}", email);
+        });
+    }
+
+    /**
+     * Public API to create user (with transaction)
+     */
+    @Transactional
+    public void createUser(OidcUser oidcUser, String provider){
+        String email = oidcUser.getEmail();
+        
+        if(checkExistedUser(email)){
+            log.warn("⚠️ User already exists: {}", email);
+            throw new RuntimeException("User already exists: " + email);
+        }
+
+        createUserInternal(oidcUser, provider);
     }
 
     public UserResponse getMyInfo() {
-        
         String email = JwtUtils.getCurrentUserEmail(); 
-            
         log.info("Fetching 'My Info' for email: {}", email);
 
         User user = userRepository.findByEmail(email)
-            .orElseThrow(() -> new UserNotFoundException());
+            .orElseThrow(() -> {
+                log.error("❌ User not found for email: {}", email);
+                return new UserNotFoundException();
+            });
 
         return userMapper.toUserResponse(user);
     }
 
     public UserResponse getUserByEmail(String email){
+        log.info("🔍 Finding user by email: {}", email);
+        
         User existedUser = userRepository.findByEmail(email)
-            .orElseThrow(() -> new UserNotFoundException());
+            .orElseThrow(() -> {
+                log.error("❌ User not found for email: {}", email);
+                return new UserNotFoundException();
+            });
 
+        log.info("✅ User found: {}", existedUser.getId());
         return userMapper.toUserResponse(existedUser);
     }
 
@@ -114,17 +154,13 @@ public class UserService {
         return userMapper.toUserResponse(user);
     }
 
-    public User findUserEntityById(UUID id) {
-        return userRepository.findById(id)
-            .orElseThrow(() -> new UserNotFoundException());
-    }
-
+    @Transactional
     public void updateLastLogin(String email) {
         log.info("Updating last login timestamp for user: {}", email);
         
         userRepository.findByEmail(email).ifPresentOrElse(
             user -> {
-                user.setLastLogin(java.time.Instant.now());
+                user.setLastLogin(Instant.now());
                 userRepository.save(user);
                 log.info("Successfully updated last login for user: {}", email);
             },

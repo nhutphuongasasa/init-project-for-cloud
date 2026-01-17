@@ -50,7 +50,8 @@ public class JwtManager {
 				.build();
 
 		} catch (Exception e) {
-			return null;
+			e.printStackTrace(); 
+        	throw new RuntimeException("Không thể khởi tạo JWK Source: " + e.getMessage());
 		}
 	}
 

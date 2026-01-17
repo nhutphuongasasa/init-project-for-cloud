@@ -28,16 +28,7 @@ public class SecurityConfig {
         return http
                 .authorizeExchange(exchange -> exchange
                     .pathMatchers(
-                        "/internal/keycloak/event/**", 
-                        "/swagger-ui/**", 
-                        "/v3/api-docs/**",
-                        "/swagger-ui.html",
-                        "/vendor/v3/api-docs",
-                        "/inventory/v3/api-docs",
-                        "/product/v3/api-docs",
-                        "/order/v3/api-docs",
-                        "/webjars/**",
-                        "/swagger-resources/**"
+                        "/api/auth/**"
                     ).permitAll()
                     .pathMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                     .pathMatchers(permitAllPaths.toArray(String[]::new)).permitAll()
@@ -49,7 +40,6 @@ public class SecurityConfig {
                 )
                 .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
-                .oauth2Login(Customizer.withDefaults())
                 .build();
     }
 

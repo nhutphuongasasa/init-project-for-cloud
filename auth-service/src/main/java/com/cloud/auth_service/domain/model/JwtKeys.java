@@ -1,5 +1,6 @@
 package com.cloud.auth_service.domain.model;
 
+import java.time.Instant;
 import java.util.UUID;
 
 import org.hibernate.annotations.UuidGenerator;
@@ -42,8 +43,8 @@ public class JwtKeys {
     private String algorithm;
     
     @Column(name = "created_at")
-    private String createdAt;
+    private Instant createdAt;
 
     @Column(name = "is_active")
-    private String isActive;
+    private boolean Active;
 }

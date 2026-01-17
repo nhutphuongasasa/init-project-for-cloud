@@ -1,12 +1,22 @@
 server:
-  port: 8010
-  netty:
-    connection-timeout: 30s
-    idle-timeout: 30s
+  port: 8005
+  forward-headers-strategy: native
+  tomcat:
+    remoteip:
+      remote-ip-header: x-forwarded-for
+      protocol-header: x-forwarded-proto
+  servlet:
+    session:
+      cookie:
+        name: JSESSIONID
+        http-only: true
+        same-site: lax 
+
+
 
 nhutphuongasasa:
   frontend:
-    callback-url: http://localhost
+    callback-url: http://localhost:3000/auth/callback
   security:
     access-token-validity-in-seconds: 3600
     jwt-issuer: "auth-service"
@@ -14,15 +24,20 @@ nhutphuongasasa:
   key-rotation-cron: 0 0 0 1 * ?
 
 spring:
+  # session:
+    # store-type: redis
   application:
     name: auth-service
   security:
+    user:
+      password: ""
     oauth2:
       client:
         registration:
           google:
             client-id: ${GOOGLE_CLIENT_ID}
             client-secret: ${GOOGLE_CLIENT_SECRET}
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
             scope:
               - openid
               - email
@@ -34,7 +49,7 @@ spring:
               user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
               user-name-attribute: sub
       authorizationserver:
-        issuer: http://auth-service/api/auth
+        issuer: http://localhost:8000/api/auth
         endpoint:
           token-uri: /token
           jwk-set-uri: /certs
@@ -49,16 +64,16 @@ spring:
     hibernate:
       ddl-auto: none
   datasource:
-    url: jdbc:postgresql://ep-restless-paper-a1savyei-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+    url: jdbc:postgresql://ep-solitary-violet-a1x058fx-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
     username: neondb_owner
-    password: npg_qeaAy4WkIV9T
+    password: npg_6SFCDrQR0ofG
     driver-class-name: org.postgresql.Driver
 
   flyway:
     enabled: true
-    url: jdbc:postgresql://ep-restless-paper-a1savyei-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
-    username: neondb_owner
-    password: npg_qeaAy4WkIV9T
+    url: jdbc:postgresql://ep-solitary-violet-a1x058fx-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+    user: neondb_owner
+    password: npg_6SFCDrQR0ofG
     locations: classpath:db/migration           
     baseline-on-migrate: true                    
     # schemas: user_service
@@ -70,15 +85,25 @@ logging:
     root: INFO
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
-    # brave: DEBUG
+    # Nhóm Security - Đã gộp lại không trùng lặp
+    org.springframework.security: TRACE
+    org.springframework.security.web.FilterChainProxy: DEBUG
+    org.springframework.security.web.access.intercept.AuthorizationFilter: TRACE
+    org.springframework.security.web.access.ExceptionTranslationFilter: TRACE
+    org.springframework.security.oauth2: TRACE
+    org.springframework.security.oauth2.client: TRACE
+    org.springframework.security.oauth2.client.web: TRACE
+    org.springframework.security.web.DefaultRedirectStrategy: TRACE
+    # Nhóm Server & Web
+    org.apache.tomcat.util.http.Rfc6265CookieProcessor: DEBUG
+    org.apache.catalina.valves.RemoteIpValve: DEBUG
+    org.springframework.web.server.adapter.HttpWebHandlerAdapter: TRACE
     reactor.netty: INFO
     org.springframework.web: INFO
     org.springframework.cloud: INFO
     com.cloud.auth_service: INFO
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
-    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
-
 # ================================tracing & health ===============================
 management:
   health:

@@ -15,10 +15,10 @@ import lombok.Data;
 @ConfigurationProperties(prefix = "nhutphuongasasa")
 public class AppProperties {
 
-    private final Frontend frontend = new Frontend();
-    private final Security security = new Security();
-	private final String aesKey;
-    private final String keyRotationCron;
+    private  Frontend frontend = new Frontend();
+    private  Security security = new Security();
+	private  String aesKey;
+    private  String keyRotationCron;
 
     @Data
     public static class Frontend {

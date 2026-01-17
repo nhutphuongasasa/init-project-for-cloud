@@ -1,8 +1,32 @@
 package com.cloud.auth_service.infrastructure.security;
 
+import com.cloud.auth_service.domain.model.Role;
+import com.cloud.auth_service.domain.model.User;
+import com.cloud.auth_service.infrastructure.adapter.outbound.repository.UserRepository;
+import com.cloud.auth_service.infrastructure.config.properties.AppProperties;
+import com.cloud.auth_service.infrastructure.exception.UserNotFoundException;
+import com.cloud.auth_service.infrastructure.security.components.CustomOidcUserService;
+import com.cloud.auth_service.infrastructure.security.components.LoginSuccessHandler;
+// import com.cloud.auth_service.infrastructure.security.components.OAuth2TokenSuccessHandler;
+import com.cloud.auth_service.infrastructure.security.keys.JwtManager;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.nimbusds.jose.jwk.JWKSet;
+import com.nimbusds.jose.jwk.RSAKey;
+import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
+import com.nimbusds.jose.jwk.source.JWKSource;
+import com.nimbusds.jose.proc.SecurityContext;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
+import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -19,178 +43,206 @@ import org.springframework.security.oauth2.server.authorization.config.annotatio
 import org.springframework.security.oauth2.server.authorization.token.JwtEncodingContext;
 import org.springframework.security.oauth2.server.authorization.token.OAuth2TokenCustomizer;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
+import org.springframework.security.web.util.matcher.MediaTypeRequestMatcher;
+import org.springframework.web.filter.ForwardedHeaderFilter;
+
 import java.time.Instant;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.cloud.auth_service.domain.model.Role;
-import com.cloud.auth_service.domain.model.User;
-import com.cloud.auth_service.infrastructure.adapter.outbound.repository.UserRepository;
-import com.cloud.auth_service.infrastructure.config.properties.AppProperties;
-import com.cloud.auth_service.infrastructure.exception.UserNotFoundException;
-import com.cloud.auth_service.infrastructure.security.components.LoginSuccessHandler;
-import com.cloud.auth_service.infrastructure.security.components.OAuth2TokenSuccessHandler;
-import com.cloud.auth_service.infrastructure.security.keys.JwtManager;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.nimbusds.jose.jwk.JWKSet;
-import com.nimbusds.jose.jwk.RSAKey;
-import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
-import com.nimbusds.jose.jwk.source.JWKSource;
-import com.nimbusds.jose.proc.SecurityContext;
-
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-
 /**
  * @author nhutphuong
- * @since 2026-01-09 20:06
+ * @version 2
+ * @since 2026/1/17 17:56
+1. Tại sao chưa kịp chọn Account Google đã hiện Popup?
+Đây là cái bẫy "Redirect 2 lần" (Double Redirect) mà trình duyệt thực hiện cực nhanh:
+
+Bước 1: Bạn bấm Login. Trình duyệt gọi UAA qua cổng 8000.
+
+Bước 2: UAA nhận request. Nó kiểm tra và thấy: "À, anh này muốn sang Google". Nó trả về mã 302 Redirect kèm địa chỉ Google.
+
+Bước 3 (Quan trọng nhất): Vì UAA chạy ở 8005 nhưng request đến từ 8000, nếu không có cái ForwardedHeaderFilter kia, UAA sẽ tạo ra một cái link Redirect sai port hoặc sai giao thức (ví dụ nó bắt trình duyệt quay lại 8005 thay vì 8000).
+
+Bước 4: Trình duyệt thấy sự mâu thuẫn này (Security Violation) ngay lập tức. Trước khi nó kịp load trang Google, Spring Security đã chặn đứng lại vì nghi ngờ tấn công. Và vì nó chặn lại ở tầng Security, nó tung cái Popup ra để "hỏi tội" bạn.
+
+2. Tại sao "Có Session rồi" vẫn hiện Popup?
+Đây là lý do tại sao cái Ordered.HIGHEST_PRECEDENCE của bạn lại quan trọng đến thế:
+
+Security Filter Chain của Spring giống như một dàn lính gác.
+
+Nếu bạn không có cái Filter kia chạy trước (HIGHEST_PRECEDENCE), gói tin đi vào đến lính gác vẫn mang nhãn "Tôi đến từ port 8005".
+
+Lính gác nhìn vào Session (đang ghi port 8000) và nhìn vào gói tin (đang ghi port 8005) -> Không khớp.
+
+Dù Session của bạn là thật, nhưng vì thông tin Port bị lệch, lính gác coi Session đó không hợp lệ (Invalid Session).
+
+Khi Session bị coi là không hợp lệ -> Bạn trở thành "người lạ" -> Popup hiện ra.
+
+3. Tại sao cái Bean ForwardedHeaderFilter lại giải quyết được?
+Cái Filter này nó đứng trước cửa toàn bộ hệ thống (trước cả Security):
+
+Nó nhặt gói tin từ Gateway (8000) gửi xuống.
+
+Nó thấy header X-Forwarded-Host: 8000.
+
+Nó "phẫu thuật" gói tin: Nó ghi đè lại toàn bộ thông tin port 8005 thành 8000.
+
+Khi gói tin này đi vào đến các tầng Security bên trong, các lính gác nhìn vào và thấy: "Mọi thứ đều là 8000, khớp hoàn toàn với Session!".
+
+Thế là chúng cho bạn đi qua mượt mà, không hỏi han (Popup) gì nữa.
  */
 @Slf4j
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
 public class AuthorizationServerConfig {
-	private final UserRepository userRepository;
-	private final LoginSuccessHandler loginSuccessHandler;
-	private final OAuth2TokenSuccessHandler tokenSuccessHandler;
-	private final AppProperties appProperties;
-	private final JwtManager jwtManager;
-	private JWKSource<SecurityContext> jwkSource;
 
-	//kiem tra url co url trong authorization config 
-    @Bean
-    @Order(1)
-    public SecurityFilterChain authorizationServerSecurityFilterChain(HttpSecurity http) throws Exception {
-        OAuth2AuthorizationServerConfigurer authorizationServerConfigurer =
-		    OAuth2AuthorizationServerConfigurer.authorizationServer();
-			
-        authorizationServerConfigurer.oidc(Customizer.withDefaults());
+    private final UserRepository userRepository;
+    private final LoginSuccessHandler loginSuccessHandler;
+    // private final OAuth2TokenSuccessHandler tokenSuccessHandler;
+    private final AppProperties appProperties;
+    private final JwtManager jwtManager;
+    private final CustomOidcUserService customOidcUserService;
+    private JWKSource<SecurityContext> jwkSource;
 
-		http.getConfigurer(OAuth2AuthorizationServerConfigurer.class)
-			.tokenEndpoint(tokenEndpoint -> tokenEndpoint
-				.accessTokenResponseHandler(tokenSuccessHandler)
-			);	
+    /*
+    buoc phai co cai nay vav phai chanh dau tien de tranh authorization bat loi 
+    authorization server khi nam sau 1 proxy ma thay request den ci domain khac ban than 8000 != 8005(port ban than) -> nghi ngo hack -> uppop
+    khi dung authorization sau proxy con co session de duy tri phien login  neu khong se gay loi 
+    */
+@Bean
+public FilterRegistrationBean<ForwardedHeaderFilter> forwardedHeaderFilter() {
+    ForwardedHeaderFilter filter = new ForwardedHeaderFilter();
+    FilterRegistrationBean<ForwardedHeaderFilter> registration = new FilterRegistrationBean<>(filter);
+    registration.setOrder(Ordered.HIGHEST_PRECEDENCE); // Ép chạy trước cả Security
+    return registration;
+}
 
-        http.securityMatcher(authorizationServerConfigurer.getEndpointsMatcher())
-            .with(authorizationServerConfigurer, Customizer.withDefaults());
+@Bean
+@Order(1)
+public SecurityFilterChain authorizationServerSecurityFilterChain(HttpSecurity http) throws Exception {
+    OAuth2AuthorizationServerConfigurer authorizationServerConfigurer =
+            OAuth2AuthorizationServerConfigurer.authorizationServer();
 
-		return http.build();
-    }
+    http.securityMatcher(
+        "/oauth2/authorize", 
+        "/oauth2/token", 
+        "/oauth2/jwks", 
+        "/oauth2/revoke",
+        "/oauth2/introspect",
+        "/.well-known/**",
+        "/userinfo",
+        "/login/oauth2/code/**",      // Quan trọng: Callback từ Google
+        "/oauth2/authorization/**"    // Quan trọng: Link bắt đầu Login Google
+    );
+    
 
-	//kiem tra url co "/api" 
-	@Bean
-    @Order(2)
-    public SecurityFilterChain resourceServerSecurityFilterChain(HttpSecurity http) throws Exception {
-        http
-            .securityMatcher("/api/**")
-            .authorizeHttpRequests(authorize -> authorize
-                .anyRequest().authenticated()
-            )
-            .oauth2ResourceServer(oauth2 -> oauth2
-                .jwt(jwt -> jwt.decoder(jwtDecoder(jwkSource())))
-            )
-            .csrf(csrf -> csrf.disable());
-        return http.build();
-    }
+    http.formLogin(loginForm -> loginForm.disable());
+    http.httpBasic(basic -> basic.disable());
+    http.csrf(csrf -> csrf.disable());
 
-    @Bean
-    @Order(3)
-    public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
-        http
-            .authorizeHttpRequests(authorize -> authorize
-                .anyRequest().authenticated()
-            )
-            .oauth2Login(oauth2 -> oauth2
-				.successHandler(loginSuccessHandler)
-			);
-        return http.build();
-    }
 
-    //loal client id
-    @Bean
+    http.with(authorizationServerConfigurer, (authServer) -> 
+        authServer.oidc(Customizer.withDefaults())
+    );
+
+    http.oauth2Login(oauth2 -> oauth2
+        .userInfoEndpoint(ui -> ui.oidcUserService(customOidcUserService))
+        .successHandler(loginSuccessHandler)
+    );
+
+    http.exceptionHandling(exceptions -> exceptions
+        .authenticationEntryPoint(new LoginUrlAuthenticationEntryPoint("/oauth2/authorization/google"))
+    );
+
+    http.authorizeHttpRequests(auth -> auth.anyRequest().authenticated());
+    
+
+    http.exceptionHandling(exceptions -> exceptions
+        .defaultAuthenticationEntryPointFor(
+            new LoginUrlAuthenticationEntryPoint("/oauth2/authorization/google"),
+            new MediaTypeRequestMatcher(MediaType.TEXT_HTML)
+        )
+    );
+
+    return http.build();
+}
+
+@Bean
     public RegisteredClientRepository registeredClientRepository(JdbcTemplate jdbcTemplate) {
         return new JdbcRegisteredClientRepository(jdbcTemplate);
     }
 
-	@Bean
-	public OAuth2TokenCustomizer<JwtEncodingContext> tokenCustomizer() {
-		ObjectMapper mapper = new ObjectMapper();
+    @Bean
+    public OAuth2TokenCustomizer<JwtEncodingContext> tokenCustomizer() {
+        ObjectMapper mapper = new ObjectMapper();
         mapper.registerModule(new JavaTimeModule());
         mapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
-		
-		return context -> {
-			if (OAuth2TokenType.ACCESS_TOKEN.equals(context.getTokenType())) {
-				
-				Authentication principal = context.getPrincipal();
 
-				if (principal instanceof OidcUser oidcUser) {
-					String email = oidcUser.getEmail();
+        return context -> {
+            if (OAuth2TokenType.ACCESS_TOKEN.equals(context.getTokenType())) {
+                Authentication principal = context.getPrincipal();
 
-					User user = userRepository.findByEmail(email)
-						.orElseThrow(() -> new UserNotFoundException());
+                if (principal instanceof OidcUser oidcUser) {
+                    String email = oidcUser.getEmail();
 
-					context.getClaims().claims(claims -> {
-						claims.put("user_id", user.getId());
-						claims.put("type", "USER");
-						claims.put("email", user.getEmail());
-						claims.put("fullName", user.getFullName());
+                    User user = userRepository.findByEmail(email)
+                            .orElseThrow(() -> new UserNotFoundException());
 
-					Set<String> roles = user.getRoles().stream()
-						.map(Role::toString)
-						.collect(Collectors.toSet());
-						claims.put("roles", roles);
-					});
-				}
-				
-				if (AuthorizationGrantType.CLIENT_CREDENTIALS.equals(context.getAuthorizationGrantType())) {
-					context.getClaims().claims(claims -> {
+                    context.getClaims().claims(claims -> {
+                        claims.put("user_id", user.getId());
+                        claims.put("type", "USER");
+                        claims.put("email", user.getEmail());
+                        claims.put("fullName", user.getFullName());
 
-						claims.put("type", "SERVICE");
-						claims.put("service_id", context.getRegisteredClient().getClientId());
-						claims.put("service_name", context.getRegisteredClient().getClientName());
+                        Set<String> roles = user.getRoles().stream()
+                                .map(Role::toString)
+                                .collect(Collectors.toSet());
+                        claims.put("roles", roles);
+                    });
+                }
 
-						Set<String> scopes = context.getRegisteredClient().getScopes();
-        				claims.put("authorities", scopes);
-					});
-				}
+                if (AuthorizationGrantType.CLIENT_CREDENTIALS.equals(context.getAuthorizationGrantType())) {
+                    context.getClaims().claims(claims -> {
+                        claims.put("type", "SERVICE");
+                        claims.put("service_id", context.getRegisteredClient().getClientId());
+                        claims.put("service_name", context.getRegisteredClient().getClientName());
 
-				context.getClaims()
-					.issuer(appProperties.getSecurity().getJwtIssuer())
-					.issuedAt(Instant.now())
-					.expiresAt(Instant.now().plusSeconds(appProperties.getSecurity().getAccessTokenValidityInSeconds()));
-		
-				try {
+                        Set<String> scopes = context.getRegisteredClient().getScopes();
+                        claims.put("authorities", scopes);
+                    });
+                }
+
+                context.getClaims()
+                        .issuer(appProperties.getSecurity().getJwtIssuer())
+                        .issuedAt(Instant.now())
+                        .expiresAt(Instant.now().plusSeconds(appProperties.getSecurity().getAccessTokenValidityInSeconds()));
+
+                try {
                     Map<String, Object> allClaims = context.getClaims().build().getClaims();
-                    
                     String prettyJson = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(allClaims);
-                    
-                    log.info("\n🔍 [JWT DEBUG] FULL CLAIMS BEFORE SIGNING:\n" +
-                             "------------------------------------------\n" +
-                             "{}\n" +
-                             "------------------------------------------", prettyJson);
+                    log.info("\n🔍 [JWT DEBUG] FULL CLAIMS:\n{}\n", prettyJson);
                 } catch (Exception e) {
                     log.error("❌ Failed to log JWT claims", e);
                 }
-			}
-		};
-	}
+            }
+        };
+    }
 
-	//nha cung cap khoa khong phai nguoi quyet dinh
-	@Bean 
-	public JWKSource<SecurityContext> jwkSource() {
-		if(this.jwkSource == null){
-			RSAKey rsaKey = jwtManager.getLastRsaKey();
-			JWKSet jwkSet = new JWKSet(rsaKey);
-			this.jwkSource = new ImmutableJWKSet<>(jwkSet);
-		}
-		return this.jwkSource;
-	}
+    @Bean
+    public JWKSource<SecurityContext> jwkSource() {
+        if (this.jwkSource == null) {
+            RSAKey rsaKey = jwtManager.getLastRsaKey();
+            JWKSet jwkSet = new JWKSet(rsaKey);
+            this.jwkSource = new ImmutableJWKSet<>(jwkSet);
+        }
+        return this.jwkSource;
+    }
 
-    @Bean 
-	public JwtDecoder jwtDecoder(JWKSource<SecurityContext> jwkSource) {
-		return OAuth2AuthorizationServerConfiguration.jwtDecoder(jwkSource);
-	}
+    @Bean
+    public JwtDecoder jwtDecoder(JWKSource<SecurityContext> jwkSource) {
+        return OAuth2AuthorizationServerConfiguration.jwtDecoder(jwkSource);
+    }
 }
