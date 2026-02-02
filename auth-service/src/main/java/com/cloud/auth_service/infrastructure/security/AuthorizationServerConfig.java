@@ -21,6 +21,7 @@ import com.nimbusds.jose.proc.SecurityContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -32,29 +33,37 @@ import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.factory.PasswordEncoderFactories;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
+import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.server.authorization.OAuth2TokenType;
 import org.springframework.security.oauth2.server.authorization.client.JdbcRegisteredClientRepository;
+import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.config.annotation.web.configuration.OAuth2AuthorizationServerConfiguration;
 import org.springframework.security.oauth2.server.authorization.config.annotation.web.configurers.OAuth2AuthorizationServerConfigurer;
+import org.springframework.security.oauth2.server.authorization.settings.ClientSettings;
 import org.springframework.security.oauth2.server.authorization.token.JwtEncodingContext;
 import org.springframework.security.oauth2.server.authorization.token.OAuth2TokenCustomizer;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.util.matcher.MediaTypeRequestMatcher;
 import org.springframework.web.filter.ForwardedHeaderFilter;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
  * @author nhutphuong
- * @version 2
+ * @version 3
  * @since 2026/1/17 17:56
 1. Tại sao chưa kịp chọn Account Google đã hiện Popup?
 Đây là cái bẫy "Redirect 2 lần" (Double Redirect) mà trình duyệt thực hiện cực nhanh:
@@ -112,67 +121,116 @@ public class AuthorizationServerConfig {
     authorization server khi nam sau 1 proxy ma thay request den ci domain khac ban than 8000 != 8005(port ban than) -> nghi ngo hack -> uppop
     khi dung authorization sau proxy con co session de duy tri phien login  neu khong se gay loi 
     */
-@Bean
-public FilterRegistrationBean<ForwardedHeaderFilter> forwardedHeaderFilter() {
-    ForwardedHeaderFilter filter = new ForwardedHeaderFilter();
-    FilterRegistrationBean<ForwardedHeaderFilter> registration = new FilterRegistrationBean<>(filter);
-    registration.setOrder(Ordered.HIGHEST_PRECEDENCE); // Ép chạy trước cả Security
-    return registration;
-}
+    @Bean
+    public FilterRegistrationBean<ForwardedHeaderFilter> forwardedHeaderFilter() {
+        ForwardedHeaderFilter filter = new ForwardedHeaderFilter();
+        FilterRegistrationBean<ForwardedHeaderFilter> registration = new FilterRegistrationBean<>(filter);
+        registration.setOrder(Ordered.HIGHEST_PRECEDENCE); // Ép chạy trước cả Security
+        return registration;
+    }
 
-@Bean
-@Order(1)
-public SecurityFilterChain authorizationServerSecurityFilterChain(HttpSecurity http) throws Exception {
-    OAuth2AuthorizationServerConfigurer authorizationServerConfigurer =
-            OAuth2AuthorizationServerConfigurer.authorizationServer();
+    @Bean
+    @Order(1)
+    public SecurityFilterChain authorizationServerSecurityFilterChain(HttpSecurity http) throws Exception {
+        OAuth2AuthorizationServerConfigurer authorizationServerConfigurer =
+                OAuth2AuthorizationServerConfigurer.authorizationServer();
 
-    http.securityMatcher(
-        "/oauth2/authorize", 
-        "/oauth2/token", 
-        "/oauth2/jwks", 
-        "/oauth2/revoke",
-        "/oauth2/introspect",
-        "/.well-known/**",
-        "/userinfo",
-        "/login/oauth2/code/**",      // Quan trọng: Callback từ Google
-        "/oauth2/authorization/**"    // Quan trọng: Link bắt đầu Login Google
-    );
-    
+        http.securityMatcher(request -> {
+            String path = request.getServletPath();
+            return authorizationServerConfigurer.getEndpointsMatcher().matches(request) || 
+                path.startsWith("/oauth2/") || 
+                path.startsWith("/login") ||           
+                path.startsWith("/api/auth/") ||
+                path.equals("/error");
+        });
 
-    http.formLogin(loginForm -> loginForm.disable());
-    http.httpBasic(basic -> basic.disable());
-    http.csrf(csrf -> csrf.disable());
+        http.formLogin(loginForm -> loginForm.disable());
+        http.httpBasic(basic -> basic.disable());
+        http.csrf(csrf -> csrf.disable());
 
 
-    http.with(authorizationServerConfigurer, (authServer) -> 
-        authServer.oidc(Customizer.withDefaults())
-    );
+        http.with(authorizationServerConfigurer, (authServer) -> 
+            authServer.oidc(Customizer.withDefaults())
+        );
 
-    http.oauth2Login(oauth2 -> oauth2
-        .userInfoEndpoint(ui -> ui.oidcUserService(customOidcUserService))
-        .successHandler(loginSuccessHandler)
-    );
+        http.oauth2Login(oauth2 -> oauth2
+            .userInfoEndpoint(ui -> ui.oidcUserService(customOidcUserService))
+            .successHandler(loginSuccessHandler)
+        );
 
-    http.exceptionHandling(exceptions -> exceptions
-        .authenticationEntryPoint(new LoginUrlAuthenticationEntryPoint("/oauth2/authorization/google"))
-    );
+        http.exceptionHandling(exceptions -> exceptions
+            .authenticationEntryPoint(new LoginUrlAuthenticationEntryPoint("/oauth2/authorization/google"))
+        );
 
-    http.authorizeHttpRequests(auth -> auth.anyRequest().authenticated());
-    
+        http.authorizeHttpRequests(auth -> auth
+            .requestMatchers(
+                "/.well-known/**", 
+                "/login/**", 
+                "/api/auth/**", 
+                "/error",
+                "/oauth2/token"
+            ).permitAll()
+            .requestMatchers(authorizationServerConfigurer.getEndpointsMatcher()).authenticated() 
+            .anyRequest().authenticated()
+        );
 
-    http.exceptionHandling(exceptions -> exceptions
-        .defaultAuthenticationEntryPointFor(
-            new LoginUrlAuthenticationEntryPoint("/oauth2/authorization/google"),
-            new MediaTypeRequestMatcher(MediaType.TEXT_HTML)
-        )
-    );
+        return http.build();
+    }
 
-    return http.build();
-}
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
 
-@Bean
+    @Bean
     public RegisteredClientRepository registeredClientRepository(JdbcTemplate jdbcTemplate) {
         return new JdbcRegisteredClientRepository(jdbcTemplate);
+    }
+
+    @Bean
+    public CommandLineRunner initClients(RegisteredClientRepository repository, PasswordEncoder passwordEncoder) {
+        return args -> {
+            saveClientIfNotExists(repository, RegisteredClient.withId("warehouse-ui-id")
+                    .clientId("warehouse-client")
+                    .clientSecret(passwordEncoder.encode("secret")) 
+                    .clientName("Warehouse NextJS UI")
+                    .clientAuthenticationMethods(m -> {
+                        m.add(ClientAuthenticationMethod.CLIENT_SECRET_BASIC);
+                        m.add(ClientAuthenticationMethod.CLIENT_SECRET_POST);
+                    })
+                    .authorizationGrantTypes(g -> {
+                        g.add(AuthorizationGrantType.AUTHORIZATION_CODE);
+                        g.add(AuthorizationGrantType.CLIENT_CREDENTIALS);
+                        g.add(AuthorizationGrantType.REFRESH_TOKEN);
+                    })
+                    .redirectUri(appProperties.getFrontend().getCallbackUrl())
+                    .scope("openid").scope("profile").scope("email")
+                    .clientSettings(ClientSettings.builder()
+                            .requireProofKey(false)
+                            .requireAuthorizationConsent(false)
+                            .build())
+                    .build());
+
+            List<String> services = List.of("vendor-service", "inventory-service", "order-service", "product-service");
+            
+            for (String serviceName : services) {
+                saveClientIfNotExists(repository, RegisteredClient.withId(serviceName + "-id")
+                        .clientId(serviceName)
+                        .clientSecret(passwordEncoder.encode(serviceName)) 
+                        .clientName(serviceName.toUpperCase())
+                        .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
+                        .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
+                        .scope("read").scope("write")
+                        .build());
+            }
+        };
+    }
+
+    private void saveClientIfNotExists(RegisteredClientRepository repository, RegisteredClient client) {
+        if (repository.findByClientId(client.getClientId()) == null) {
+            repository.save(client);
+            log.info("✅ Registered client: {}", client.getClientId());
+        }
     }
 
     @Bean

@@ -109,55 +109,59 @@ INSERT INTO roles (id, code, name, description) VALUES
 (gen_random_uuid(), 'ROLE_GUEST', 'Guest', 'Người dùng chưa định danh hoặc khách');
 
 -- 2. Đăng ký các Client (Bao gồm Microservices và UI)
-INSERT INTO oauth2_registered_client (
-    id, client_id, client_id_issued_at, client_secret, client_name, 
-    client_authentication_methods, authorization_grant_types, 
-    redirect_uris, scopes, client_settings, token_settings
-) VALUES 
-(
-    'vendor-id', 'vendor-service', CURRENT_TIMESTAMP, 
-    '{bcrypt}$2a$10$7R6C.I3VlR6B8p2.L3v7k.eM7XvVv5Y/Q7.9uX0n4zI0e2l/K6X7y', 
-    'Vendor Service Client', 'client_secret_basic', 'client_credentials', 
-    NULL, 'read,write', 
-    '{"@class":"java.util.Collections$UnmodifiableMap"}', '{"@class":"java.util.Collections$UnmodifiableMap"}'
-),
-(
-    'inventory-id', 'inventory-service', CURRENT_TIMESTAMP, 
-    '{bcrypt}$2a$10$7R6C.I3VlR6B8p2.L3v7k.eM7XvVv5Y/Q7.9uX0n4zI0e2l/K6X7y', 
-    'Inventory Service Client', 'client_secret_basic', 'client_credentials', 
-    NULL, 'read,write', 
-    '{"@class":"java.util.Collections$UnmodifiableMap"}', '{"@class":"java.util.Collections$UnmodifiableMap"}'
-),
-(
-    'order-id', 'order-service', CURRENT_TIMESTAMP, 
-    '{bcrypt}$2a$10$7R6C.I3VlR6B8p2.L3v7k.eM7XvVv5Y/Q7.9uX0n4zI0e2l/K6X7y', 
-    'Order Service Client', 'client_secret_basic', 'client_credentials', 
-    NULL, 'read,write', 
-    '{"@class":"java.util.Collections$UnmodifiableMap"}', '{"@class":"java.util.Collections$UnmodifiableMap"}'
-),
-(
-    'product-id', 'product-service', CURRENT_TIMESTAMP, 
-    '{bcrypt}$2a$10$7R6C.I3VlR6B8p2.L3v7k.eM7XvVv5Y/Q7.9uX0n4zI0e2l/K6X7y', 
-    'Product Service Client', 'client_secret_basic', 'client_credentials', 
-    NULL, 'read,write', 
-    '{"@class":"java.util.Collections$UnmodifiableMap"}', '{"@class":"java.util.Collections$UnmodifiableMap"}'
-);
+-- INSERT INTO oauth2_registered_client (
+--     id, client_id, client_id_issued_at, client_secret, client_name, 
+--     client_authentication_methods, authorization_grant_types, 
+--     redirect_uris, scopes, client_settings, token_settings
+-- ) VALUES 
+-- (
+--     'vendor-id', 'vendor-service', CURRENT_TIMESTAMP, 
+--     '{bcrypt}$2a$10$7R6C.I3VlR6B8p2.L3v7k.eM7XvVv5Y/Q7.9uX0n4zI0e2l/K6X7y', 
+--     'Vendor Service Client', 'client_secret_basic', 'client_credentials', 
+--     NULL, 'read,write', 
+--     '{"@class":"java.util.Collections$UnmodifiableMap"}', '{"@class":"java.util.Collections$UnmodifiableMap"}'
+-- ),
+-- (
+--     'inventory-id', 'inventory-service', CURRENT_TIMESTAMP, 
+--     '{bcrypt}$2a$10$7R6C.I3VlR6B8p2.L3v7k.eM7XvVv5Y/Q7.9uX0n4zI0e2l/K6X7y', 
+--     'Inventory Service Client', 'client_secret_basic', 'client_credentials', 
+--     NULL, 'read,write', 
+--     '{"@class":"java.util.Collections$UnmodifiableMap"}', '{"@class":"java.util.Collections$UnmodifiableMap"}'
+-- ),
+-- (
+--     'order-id', 'order-service', CURRENT_TIMESTAMP, 
+--     '{bcrypt}$2a$10$7R6C.I3VlR6B8p2.L3v7k.eM7XvVv5Y/Q7.9uX0n4zI0e2l/K6X7y', 
+--     'Order Service Client', 'client_secret_basic', 'client_credentials', 
+--     NULL, 'read,write', 
+--     '{"@class":"java.util.Collections$UnmodifiableMap"}', '{"@class":"java.util.Collections$UnmodifiableMap"}'
+-- ),
+-- (
+--     'product-id', 
+--     'product-service', 
+--     CURRENT_TIMESTAMP, 
+--     '$2a$10$B4ke6.ZvBAiCkQrkjNCSsOuLSklZSRu2Zfu0oQKNraFY5StVghpLy',
+--     'Product Service Client', 
+--     'client_secret_basic,client_secret_post', 
+--     'client_credentials', 
+--     NULL, 'read,write', 
+--     '{"@class":"java.util.Collections$UnmodifiableMap"}', '{"@class":"java.util.Collections$UnmodifiableMap"}'
+-- );
 
-INSERT INTO oauth2_registered_client (
-    id, client_id, client_id_issued_at, client_secret, 
-    client_name, client_authentication_methods, authorization_grant_types, 
-    redirect_uris, scopes, client_settings, token_settings
-) VALUES (
-    'warehouse-ui-id', 
-    'warehouse-client', 
-    CURRENT_TIMESTAMP, 
-    '{bcrypt}$2a$10$7R6C.I3VlR6B8p2.L3v7k.eM7XvVv5Y/Q7.9uX0n4zI0e2l/K6X7y', 
-    'Warehouse NextJS UI', 
-    'client_secret_basic', 
-    'authorization_code,refresh_token,client_credentials', 
-    'http://localhost:3000/auth/callback', 
-    'openid,profile,email', 
-    -- QUAN TRỌNG: Đã đổi sang FALSE ở dưới đây
-    '{"@class":"java.util.Collections$UnmodifiableMap","settings.client.require-proof-key":false,"settings.client.require-authorization-consent":false}', 
-    '{"@class":"java.util.Collections$UnmodifiableMap","settings.token.access-token-time-to-live":["java.time.Duration",3600.0],"settings.token.reuse-refresh-tokens":true}'
-);
+-- INSERT INTO oauth2_registered_client (
+--     id, client_id, client_id_issued_at, client_secret, 
+--     client_name, client_authentication_methods, authorization_grant_types, 
+--     redirect_uris, scopes, client_settings, token_settings
+-- ) VALUES (
+--     'warehouse-ui-id', 
+--     'warehouse-client', 
+--     CURRENT_TIMESTAMP, 
+--     '$2a$10$RlrC2YK9y/P/cPUyJ/5ZAuFB/hYtzHYkVrajJV4XX78CZf625ESRy',
+--     'Warehouse NextJS UI', 
+--     'client_secret_basic,client_secret_post', 
+--     'authorization_code,refresh_token,client_credentials', 
+--     'http://localhost:3000/auth/callback', 
+--     'openid,profile,email', 
+--     -- QUAN TRỌNG: Đã đổi sang FALSE ở dưới đây
+--     '{"@class":"java.util.Collections$UnmodifiableMap","settings.client.require-proof-key":false,"settings.client.require-authorization-consent":false}', 
+--     '{"@class":"java.util.Collections$UnmodifiableMap","settings.token.access-token-time-to-live":["java.time.Duration",3600.0],"settings.token.reuse-refresh-tokens":true,"settings.token.authorization-code-time-to-live":["java.time.Duration",300.0]}'
+-- );

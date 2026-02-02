@@ -30,9 +30,9 @@ export default function AuthCallback() {
       params.append("code", authCode);
       params.append("redirect_uri", "http://localhost:3000/auth/callback"); // Phải khớp với Backend
       params.append("client_id", "warehouse-client"); // ID bạn đăng ký trong DB
-
+params.append("client_secret", "secret");
       // GỌI CHẶNG 3: POST trực tiếp vào Auth Server
-      const response = await axios.post("http://localhost:8005/oauth2/token", params, {
+      const response = await axios.post("http://localhost:8000/api/auth/oauth2/token", params, {
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
           // Nếu bạn có Client Secret, dùng Basic Auth:

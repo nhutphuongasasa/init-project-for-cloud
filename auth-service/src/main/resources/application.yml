@@ -1,6 +1,7 @@
 server:
   port: 8005
-  forward-headers-strategy: native
+  forward-headers-strategy: framework
+  # forward-headers-strategy: native
   tomcat:
     remoteip:
       remote-ip-header: x-forwarded-for
@@ -51,11 +52,12 @@ spring:
       authorizationserver:
         issuer: http://localhost:8000/api/auth
         endpoint:
-          token-uri: /token
-          jwk-set-uri: /certs
-          token-introspection-uri: "/introspect"
-          token-revocation-uri: "/revoke"
-          # authorization-uri: "/authorize"
+          authorization-uri: "/oauth2/authorize"
+          token-uri: "/oauth2/token"              
+          jwk-set-uri: "/oauth2/jwks"           
+          token-revocation-uri: "/oauth2/revoke"
+          token-introspection-uri: "/oauth2/introspect"
+          oidc-user-info-uri: "/userinfo"
 
 
 
