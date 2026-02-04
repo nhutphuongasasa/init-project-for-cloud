@@ -137,7 +137,7 @@ services:
     container_name: auth-service
     ports:
       - "8005:8005"
-    environment:
+    # environment:
     networks:
       - app-network
     restart: always
@@ -158,6 +158,13 @@ services:
       - "8000:8000"
     networks:
       - app-network
+    volumes:
+      - ./data/logs/api-gateway:/app/logs
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m" 
+        max-file: "3"
     restart: always
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/actuator/health"]
@@ -225,6 +232,51 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+  
+  loki-init:
+    image: busybox
+    container_name: loki-init
+    user: root
+    volumes:
+      - ./loki/loki_storage:/data/loki
+    command: chown -R 10001:10001 /data/loki
+
+  loki:
+    image: grafana/loki:2.9.0
+    container_name: loki
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./loki/loki-config.yaml:/etc/loki/loki.yaml
+      - ./loki/loki_storage:/data/loki
+    command: -config.file=/etc/loki/loki.yaml
+    networks:
+      - app-network
+
+  promtail:
+    image: grafana/promtail:2.9.0
+    container_name: promtail
+    volumes:
+      - ./promtail-config.yaml:/etc/promtail/config.yml
+      - ./data/logs:/data/logs
+
+      - /etc/hostname:/etc/hostname
+      - /etc/hosts:/etc/hosts
+    command: -config.file=/etc/promtail/config.yml
+    networks:
+      - app-network
+  
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3333:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin 
+    depends_on:
+      - loki
+    networks:
+      - app-network
 
   # =============================================
   # ZIPKIN

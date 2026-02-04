@@ -1,11 +1,6 @@
-# ------------------- SERVER (Netty) -------------------
 server:
   port: 8000
-  # netty:
-    # connection-timeout: 2s
-    # idle-timeout: 0s
 
-# ------------------- REDIRECT URL -------------------
 redirect:
   vendor:
     url: vendor/dashboard
@@ -74,82 +69,22 @@ spring:
             - Path=/api/order/**
           filters:
             - StripPrefix=2
-  # cloud:
-  #   gateway:
-  #     default-filters:
-  #       - PreserveHostHeader #
-  #     server:
-  #       webflux: # <-- ĐÂY LÀ CẤP ĐỘ MỚI BẮT BUỘC
-  #         httpclient:
-  #           connect-timeout: 2000
-  #           response-timeout: 5s
-  #           pool:
-  #             type: elastic
-  #             idle-timeout: 30s
-  #         discovery:
-  #           locator:
-  #             enabled: true
-  #             lower-case-service-id: true
-  #         routes:
-  #           - id: vendor-service 
-  #             uri: lb://vendor-service
-  #             predicates:
-  #               - Path=/api/vendor/**
-  #             filters:
-  #               - name: StripPrefix
-  #                 args:
-  #                   parts: 2
-  #           - id: product-service
-  #             uri: lb://product-service
-  #             predicates:
-  #               - Path=/api/product/**
-  #             filters:
-  #               - name: StripPrefix
-  #                 args:
-  #                   parts: 2
-  #           - id: inventory-service
-  #             uri: lb://inventory-service
-  #             predicates:
-  #               - Path=/api/inventory/**
-  #             filters:
-  #               - name: StripPrefix
-  #                 args:
-  #                   parts: 2
-  #           - id: order-service
-  #             uri: lb://order-service
-  #             predicates:
-  #               - Path=/api/order/**
-  #             filters:
-  #               - name: StripPrefix
-  #                 args:
-  #                   parts: 2
-  #           - id: auth-service
-  #             uri: lb://auth-service
-  #             predicates:
-  #               - Path=/api/auth/**
-  #             filters:
-  #               - name: StripPrefix
-  #                 args:
-  #                   parts: 2
-  #               - AddRequestHeader=X-Forwarded-Host, localhost:8000
-  #               - AddRequestHeader=X-Forwarded-Proto, http
-  #               - AddRequestHeader=X-Forwarded-Prefix, /api/auth
-  #               - AddRequestHeader=X-Forwarded-Port, 8000
   main:
     web-application-type: reactive
 
 logging:
   level:
     root: INFO
-    org.springframework.cloud.gateway.filter: DEBUG
-    org.springframework.cloud.gateway.handler: DEBUG
-    org.springframework.cloud.loadbalancer: DEBUG
-    org.springframework.security: DEBUG
+    org.springframework.cloud.gateway.filter: INFO
+    org.springframework.cloud.gateway.handler: INFO
+    org.springframework.cloud.loadbalancer: INFO
+    org.springframework.security: INFO
     com.cloud.api_gateway: DEBUG
-
-
+  file:
+    name: logs/api-gateway.log
   pattern:
-    console: "%d{HH:mm:ss.SSS} %-5level [%thread] %logger{36} - %msg%n"
+    console: "%d{yyyy-MM-dd HH:mm:ss} %5p [%thread] %-40.40logger{39} [%X{traceId:-},%X{spanId:-}] : %m%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} %5p [%thread] %-40.40logger{39} [%X{traceId:-},%X{spanId:-}] : %m%n"
 
 management:
   endpoints:

@@ -6,3 +6,11 @@ ansible
 
 realms
 docker-compose.yml
+loki/loki_storage/
+
+data/logs/
+**/logs/*.log
+
+.env
+
+.DS_Store
