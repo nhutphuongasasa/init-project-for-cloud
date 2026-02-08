@@ -25,16 +25,16 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
-import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
@@ -51,8 +51,6 @@ import org.springframework.security.oauth2.server.authorization.token.JwtEncodin
 import org.springframework.security.oauth2.server.authorization.token.OAuth2TokenCustomizer;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
-import org.springframework.security.web.util.matcher.MediaTypeRequestMatcher;
 import org.springframework.web.filter.ForwardedHeaderFilter;
 
 import java.time.Instant;
@@ -102,6 +100,7 @@ Khi gói tin này đi vào đến các tầng Security bên trong, các lính g�
 
 Thế là chúng cho bạn đi qua mượt mà, không hỏi han (Popup) gì nữa.
  */
+@DependsOn("flyway")
 @Slf4j
 @Configuration
 @EnableWebSecurity
@@ -110,7 +109,6 @@ public class AuthorizationServerConfig {
 
     private final UserRepository userRepository;
     private final LoginSuccessHandler loginSuccessHandler;
-    // private final OAuth2TokenSuccessHandler tokenSuccessHandler;
     private final AppProperties appProperties;
     private final JwtManager jwtManager;
     private final CustomOidcUserService customOidcUserService;
@@ -178,6 +176,26 @@ public class AuthorizationServerConfig {
     }
 
     @Bean
+    @Order(2)
+    public SecurityFilterChain apiSecurityFilterChain(HttpSecurity http) throws Exception {
+        http
+            .securityMatcher("/roles/**", "/users/**", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html")
+            
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                .requestMatchers("/roles/**").authenticated()
+                .anyRequest().authenticated()
+            )
+            
+            .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()))
+            
+            .csrf(csrf -> csrf.disable())
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+
+        return http.build();
+    }
+    
+    @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
@@ -241,15 +259,27 @@ public class AuthorizationServerConfig {
 
         return context -> {
             if (OAuth2TokenType.ACCESS_TOKEN.equals(context.getTokenType())) {
-                Authentication principal = context.getPrincipal();
+                Authentication auth = context.getPrincipal();
+
+                Object principal = auth.getPrincipal();
+
+                System.out.println("========================================");
+                System.out.println(" LOAI AUTH: " + auth.getClass().getSimpleName());
+                System.out.println(" LOAI PRINCIPAL: " + principal.getClass().getSimpleName());
+                System.out.println(" DU LIEU: " + principal.toString());
+                System.out.println("========================================");
 
                 if (principal instanceof OidcUser oidcUser) {
                     String email = oidcUser.getEmail();
 
-                    User user = userRepository.findByEmail(email)
-                            .orElseThrow(() -> new UserNotFoundException());
+                    User user = userRepository.findByEmailWithRoles(email)
+                        .orElseThrow(() -> new UserNotFoundException());
 
-                    context.getClaims().claims(claims -> {
+                    context.getClaims()
+                    .issuer(appProperties.getSecurity().getJwtIssuer())
+                        .issuedAt(Instant.now())
+                        .expiresAt(Instant.now().plusSeconds(appProperties.getSecurity().getAccessTokenValidityInSeconds()))
+                    .claims(claims -> {
                         claims.put("user_id", user.getId());
                         claims.put("type", "USER");
                         claims.put("email", user.getEmail());
@@ -262,28 +292,27 @@ public class AuthorizationServerConfig {
                     });
                 }
 
-                if (AuthorizationGrantType.CLIENT_CREDENTIALS.equals(context.getAuthorizationGrantType())) {
-                    context.getClaims().claims(claims -> {
-                        claims.put("type", "SERVICE");
-                        claims.put("service_id", context.getRegisteredClient().getClientId());
-                        claims.put("service_name", context.getRegisteredClient().getClientName());
+                // if (AuthorizationGrantType.CLIENT_CREDENTIALS.equals(context.getAuthorizationGrantType())) {
+                //     context.getClaims()
+                //     .issuer(appProperties.getSecurity().getJwtIssuer())
+                //         .issuedAt(Instant.now())
+                //         .expiresAt(Instant.now().plusSeconds(appProperties.getSecurity().getAccessTokenValidityInSeconds()))
+                //     .claims(claims -> {
+                //         claims.put("type", "SERVICE");
+                //         claims.put("service_id", context.getRegisteredClient().getClientId());
+                //         claims.put("service_name", context.getRegisteredClient().getClientName());
 
-                        Set<String> scopes = context.getRegisteredClient().getScopes();
-                        claims.put("authorities", scopes);
-                    });
-                }
-
-                context.getClaims()
-                        .issuer(appProperties.getSecurity().getJwtIssuer())
-                        .issuedAt(Instant.now())
-                        .expiresAt(Instant.now().plusSeconds(appProperties.getSecurity().getAccessTokenValidityInSeconds()));
+                //         Set<String> scopes = context.getRegisteredClient().getScopes();
+                //         claims.put("authorities", scopes);
+                //     });
+                // }
 
                 try {
                     Map<String, Object> allClaims = context.getClaims().build().getClaims();
                     String prettyJson = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(allClaims);
-                    log.info("\n🔍 [JWT DEBUG] FULL CLAIMS:\n{}\n", prettyJson);
+                    log.info("\n [JWT DEBUG] FULL CLAIMS:\n{}\n", prettyJson);
                 } catch (Exception e) {
-                    log.error("❌ Failed to log JWT claims", e);
+                    log.error("Failed to log JWT claims", e);
                 }
             }
         };

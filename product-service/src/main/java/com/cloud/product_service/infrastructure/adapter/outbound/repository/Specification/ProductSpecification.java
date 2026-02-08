@@ -31,7 +31,8 @@ public class ProductSpecification {
 
             if (vendorId != null) {
                 predicates.add(cb.equal(root.get("vendorId"), vendorId));
-            }else if(request.getVendorId() != null){
+            }
+            else if(request.getVendorId() != null){
                 predicates.add(cb.equal(root.get("vendorId"), request.getVendorId()));
             }
 

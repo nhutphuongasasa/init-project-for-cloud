@@ -8,7 +8,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.cloud.auth_service.application.dto.response.UserResponse;
@@ -31,13 +30,22 @@ public class UserService {
     private final JwtUtils JwtUtils;
     private final RoleService roleService;
 
+    /**
+     * Kiểm tra xem email đã tồn tại trong hệ thống hay chưa.
+     *
+     * @param email email cần kiểm tra
+     * @return true nếu email đã tồn tại, false nếu chưa
+     */
     public Boolean checkExistedUser(String email){
         return userRepository.existsByEmail(email);
     }
 
     /**
-     * Sync user from OAuth provider (create or update)
-     * REQUIRES_NEW ensures this runs in separate transaction
+     * Nếu user đã tồn tại → chỉ cập nhật last login.<br>
+     * Nếu chưa tồn tại → tạo user mới với role GUEST mặc định.
+     * 
+     * @param oidcUser thông tin user từ OAuth provider
+     * @param provider tên provider (google, github, ...)
      */
     @Transactional
     public void syncUser(OidcUser oidcUser, String provider) {
@@ -45,35 +53,32 @@ public class UserService {
         
         log.info("🔍 Starting sync for user: {}", email);
         
-        if (userRepository.existsByEmail(email)) {
-            log.info("✅ User exists, updating last login: {}", email);
+        if (checkExistedUser(email)) {
+            log.info("User exists, updating last login: {}", email);
             updateLastLoginInternal(email);
         } else {
             log.info("➕ User not found, start creating new user: {}", email);
             createUserInternal(oidcUser, provider);
         }
         
-        log.info("✅ Sync completed for user: {}", email);
+        log.info("Sync completed for user: {}", email);
     }
 
-    /**
-     * Internal method to create user (called within syncUser transaction)
-     */
     private void createUserInternal(OidcUser oidcUser, String provider) {
         String email = oidcUser.getEmail();
         String providerId = oidcUser.getAttribute("sub");
         String fullName = oidcUser.getFullName();
         String avatarUrl = oidcUser.getAttribute("picture");
 
-        log.info("🔍 Finding GUEST role...");
+        log.info("Finding GUEST role...");
         Role role = roleService.findByCode("ROLE_GUEST");
         
         if (role == null) {
-            log.error("❌ GUEST role not found in database!");
+            log.error("GUEST role not found in database!");
             throw new RuntimeException("GUEST role not found");
         }
         
-        log.info("✅ GUEST role found: {} (ID: {})", role.getName(), role.getId());
+        log.info("GUEST role found: {} (ID: {})", role.getName(), role.getId());
 
         User newUser = User.builder()
                 .provider(provider)
@@ -87,35 +92,36 @@ public class UserService {
                 .build();
 
         User savedUser = userRepository.save(newUser);
-        log.info("✅ User created successfully with ID: {} for email: {}", savedUser.getId(), email);
+        log.info("User created successfully with ID: {} for email: {}", savedUser.getId(), email);
     }
 
-    /**
-     * Internal method to update last login (called within syncUser transaction)
-     */
     private void updateLastLoginInternal(String email) {
         userRepository.findByEmail(email).ifPresent(user -> {
             user.setLastLogin(Instant.now());
             userRepository.save(user);
-            log.info("✅ Last login updated for: {}", email);
+            log.info("Last login updated for: {}", email);
         });
     }
 
-    /**
-     * Public API to create user (with transaction)
-     */
-    @Transactional
-    public void createUser(OidcUser oidcUser, String provider){
-        String email = oidcUser.getEmail();
+    // @Transactional
+    // public void createUser(OidcUser oidcUser, String provider){
+    //     String email = oidcUser.getEmail();
         
-        if(checkExistedUser(email)){
-            log.warn("⚠️ User already exists: {}", email);
-            throw new RuntimeException("User already exists: " + email);
-        }
+    //     if(checkExistedUser(email)){
+    //         log.warn("User already exists: {}", email);
+    //         throw new RuntimeException("User already exists: " + email);
+    //     }
 
-        createUserInternal(oidcUser, provider);
-    }
+    //     createUserInternal(oidcUser, provider);
+    // }
 
+    
+     /**
+     * Lấy thông tin chi tiết của user hiện tại (dựa trên JWT).
+     *
+     * @return UserResponse thông tin user
+     * @throws UserNotFoundException nếu không tìm thấy user
+     */
     public UserResponse getMyInfo() {
         String email = JwtUtils.getCurrentUserEmail(); 
         log.info("Fetching 'My Info' for email: {}", email);
@@ -129,6 +135,13 @@ public class UserService {
         return userMapper.toUserResponse(user);
     }
 
+    /**
+     * Lấy thông tin user theo email.
+     *
+     * @param email email của user
+     * @return UserResponse thông tin user
+     * @throws UserNotFoundException nếu không tìm thấy
+     */
     public UserResponse getUserByEmail(String email){
         log.info("🔍 Finding user by email: {}", email);
         
@@ -142,6 +155,13 @@ public class UserService {
         return userMapper.toUserResponse(existedUser);
     }
 
+    /**
+     * Lấy thông tin user theo ID.
+     *
+     * @param id UUID của user
+     * @return UserResponse thông tin user
+     * @throws UserNotFoundException nếu không tìm thấy
+     */
     public UserResponse getUserById(UUID id) {
         log.info("Fetching user details for ID: {}", id);
 
@@ -154,6 +174,11 @@ public class UserService {
         return userMapper.toUserResponse(user);
     }
 
+    /**
+     * Cập nhật thời gian đăng nhập cuối cùng cho user.
+     *
+     * @param email email của user
+     */
     @Transactional
     public void updateLastLogin(String email) {
         log.info("Updating last login timestamp for user: {}", email);
@@ -168,6 +193,12 @@ public class UserService {
         );
     }
 
+    /**
+     * Lấy danh sách tất cả user theo phân trang.
+     *
+     * @param pageable thông tin phân trang (page, size, sort)
+     * @return Page<UserResponse> trang user
+     */
     public Page<UserResponse> getAllUsers(Pageable pageable) {
         log.info("Request to get a page of users with pageable: {}", pageable);
         return userRepository.findAll(pageable)

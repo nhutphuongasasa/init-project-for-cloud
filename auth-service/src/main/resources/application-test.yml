@@ -1,0 +1,96 @@
+server:
+  port: 8005
+  forward-headers-strategy: framework
+  tomcat:
+    remoteip:
+      remote-ip-header: x-forwarded-for
+      protocol-header: x-forwarded-proto
+  servlet:
+    session:
+      cookie:
+        name: JSESSIONID
+        http-only: true
+        same-site: lax 
+
+
+
+nhutphuongasasa:
+  frontend:
+    callback-url: http://localhost:3000/auth/callback
+  security:
+    access-token-validity-in-seconds: 3600
+    jwt-issuer: "auth-service"
+  aes-Key: "c2FmZS1rZXktMzItYnl0ZXMtc3RyaW5nLWZvci10ZXN0" 
+  key-rotation-cron: 0 0 0 1 * ?
+
+spring:
+  cloud:
+    nacos:
+        discovery:
+          enabled: false  # Tắt đăng ký dịch vụ với Nacos
+        config:
+          enabled: false  # Tắt lấy cấu hình từ Nacos
+    service-registry:
+        auto-registration: false
+  # session:
+    # store-type: redis
+  application:
+    name: auth-service
+  security:
+    user:
+      password: ""
+    oauth2:
+      client:
+        registration:
+          google:
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            scope:
+              - openid
+              - email
+              - profile
+          provider:
+            google:
+              authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
+              token-uri: https://oauth2.googleapis.com/token
+              user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
+              user-name-attribute: sub
+      authorizationserver:
+        issuer: http://localhost:8000/api/auth
+        endpoint:
+          authorization-uri: "/oauth2/authorize"
+          token-uri: "/oauth2/token"              
+          jwk-set-uri: "/oauth2/jwks"           
+          token-revocation-uri: "/oauth2/revoke"
+
+# ================================database ===============================
+  datasource:
+    # Chỉ để jdbc:tc ở ĐÂY duy nhất 1 lần
+    url: jdbc:tc:postgresql:15-alpine:///testdb
+    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
+    username: test
+    password: test
+    hikari:
+      initialization-fail-timeout: 60000
+
+  flyway:
+    enabled: true 
+    # TUYỆT ĐỐI XÓA dòng url, user, password ở đây. 
+    # Flyway sẽ tự lấy cấu hình từ datasource ở trên.
+    locations: classpath:db/migration           
+    clean-disabled: false
+
+  jpa:
+    hibernate:
+      ddl-auto: validate # Flyway chạy xong thì Hibernate chỉ việc kiểm tra
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+# ================================logging ===============================
+logging:
+  level:
+    root: INFO
+    org.testcontainers: INFO # Xem log Docker khởi động
+    com.cloud.auth_service: DEBUG
+  file:
+    name: null # Không cần ghi file log khi test
+  

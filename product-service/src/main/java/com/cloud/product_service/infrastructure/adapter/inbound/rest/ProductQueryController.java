@@ -30,7 +30,7 @@ public class ProductQueryController {
 
     @GetMapping("/filter")
     public ResponseEntity<FormResponse<List<ProductResponse>>> filterProductVariant(@RequestParam String keyword) {
-        List<ProductResponse> result = productQueryService.filterProductVariant(keyword);
+        List<ProductResponse> result = productQueryService.searchVariantsByKeyword(keyword);
         return ResponseEntity.ok(FormResponse.<List<ProductResponse>>builder()
                 .data(result)
                 .message("Product variants filtered successfully")
@@ -42,7 +42,7 @@ public class ProductQueryController {
     public ResponseEntity<FormResponse<Page<ProductResponse>>> getMyProducts(
             @ParameterObject Pageable pageable) {
 
-        Page<ProductResponse> result = productQueryService.getMyAllProduct(
+        Page<ProductResponse> result = productQueryService.getAllMyProduct(
                 pageable.getPageNumber(),
                 pageable.getPageSize());
 

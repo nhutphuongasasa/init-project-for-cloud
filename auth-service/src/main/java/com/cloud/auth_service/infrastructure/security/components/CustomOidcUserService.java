@@ -9,6 +9,11 @@ import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Service;
 
+/**
+ * @author nhutphuong
+ * @since 2026/1/13 22:09h
+ * @version 1
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -18,23 +23,19 @@ public class CustomOidcUserService extends OidcUserService {
 
     @Override
     public OidcUser loadUser(OidcUserRequest userRequest) throws OAuth2AuthenticationException {
-        // Lấy thông tin user từ Google
         OidcUser oidcUser = super.loadUser(userRequest);
 
         try {
             String provider = userRequest.getClientRegistration().getRegistrationId();
-            log.info("🔐 Đang thực hiện Sync User từ provider: {}", provider);
-            log.info("📧 Email: {}", oidcUser.getEmail());
+            log.info("Đang thực hiện Sync User từ provider: {}", provider);
+            log.info("Email: {}", oidcUser.getEmail());
             
-            // Sync user vào database
             userService.syncUser(oidcUser, provider);
             
             log.info("✅ Sync user thành công cho: {}", oidcUser.getEmail());
             
         } catch (Exception e) {
             log.error("❌ Lỗi khi sync user vào Database: {}", e.getMessage(), e);
-            // Không throw exception để OAuth flow vẫn tiếp tục
-            // User vẫn được authenticate nhưng chưa lưu vào DB
         }
 
         return oidcUser;

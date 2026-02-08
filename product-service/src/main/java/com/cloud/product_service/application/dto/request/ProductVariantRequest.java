@@ -7,8 +7,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import java.math.BigDecimal;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
@@ -16,6 +18,8 @@ import lombok.ToString;
 @Getter
 @Setter
 @ToString
+@NoArgsConstructor
+@AllArgsConstructor
 public class ProductVariantRequest {
     @NotNull(message = "Price is required")
     private BigDecimal price;

@@ -14,22 +14,26 @@ import com.cloud.auth_service.application.dto.response.UserResponse;
 import com.cloud.auth_service.application.service.UserService;
 import com.cloud.auth_service.common.response.FormResponse;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
  * @author nhutphuong
  * @since 2026/1/13
- * @version 1.1
+ * @version 2
  */
 @Slf4j
 @RestController
 @RequestMapping("/api/v1/users")
 @RequiredArgsConstructor
+@Tag(name = "User API")
 public class UserController {
 
     private final UserService userService;
 
+    @Operation(summary = "Xem thông tin cá nhân (Me)")
     @GetMapping("/me")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<FormResponse<UserResponse>> getMyInfo() {
@@ -43,6 +47,7 @@ public class UserController {
         );
     }
 
+    @Operation(summary = "Tìm user bằng Email")
     @GetMapping("/search")
     @PreAuthorize("hasRole('SYSTEM_ADMIN')")
     public ResponseEntity<FormResponse<UserResponse>> getUserByEmail(@RequestParam String email) {
@@ -56,6 +61,7 @@ public class UserController {
         );
     }
 
+    @Operation(summary = "Xem chi tiết user bằng ID")
     @GetMapping("/{id}")
     @PreAuthorize("hasRole('SYSTEM_ADMIN')")
     public ResponseEntity<FormResponse<UserResponse>> getUserById(@PathVariable UUID id) {
@@ -69,6 +75,7 @@ public class UserController {
         );
     }
 
+    @Operation(summary = "Lấy danh sách tất cả user (Phân trang)")
     @GetMapping
     @PreAuthorize("hasRole('SYSTEM_ADMIN')")
     public ResponseEntity<FormResponse<Page<UserResponse>>> getAllUsers(

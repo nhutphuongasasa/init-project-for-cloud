@@ -4,16 +4,16 @@ server:
     connection-timeout: 2s
     idle-timeout: 30s
 
+
+nhutphuongasasa:
+  default-provider: "system"
+  default-email: "unknown@system.local"
+  default-full-name: "Guest User (Fallback)"
+  default-avatar: "https://cdn.example.com/default-avatar.png"
+
 spring:
   application:
     name: vendor-service
-
-  rabbitmq:
-    host: fuji.lmq.cloudamqp.com
-    port: 5672
-    username: tdteuzte
-    password: lIrc_ZdOdoQZ3haXShEgsl8EpOn2jnXG
-    virtual-host: tdteuzte
 
   security:
     oauth2:
@@ -79,8 +79,3 @@ management:
     sampling:
       probability: 1.0
   
-  # zipkin:
-  #   tracing:
-  #     endpoint: http://zipkin:9411/api/v2/spans
-  #     connect-timeout: 1s
-  #     read-timeout: 5s

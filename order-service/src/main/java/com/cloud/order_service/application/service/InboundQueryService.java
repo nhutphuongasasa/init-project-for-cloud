@@ -11,10 +11,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.cloud.order_service.application.dto.response.InboundOrderResponse;
+import com.cloud.order_service.application.exception.FulfillmentOrderNotFoundException;
 import com.cloud.order_service.common.utils.jwt.JwtUtils;
 import com.cloud.order_service.domain.model.InboundOrder;
 import com.cloud.order_service.infrastructure.adapter.outbound.repository.InboundOrderRepository;
-import com.cloud.order_service.infrastructure.exception.FulfillmentOrderNotFoundException;
 import com.cloud.order_service.infrastructure.mapper.InboundOrderMapper;
 
 import lombok.NonNull;

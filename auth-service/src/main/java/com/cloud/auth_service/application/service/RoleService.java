@@ -43,7 +43,7 @@ public class RoleService {
             .orElseThrow(() -> new UserNotFoundException());
 
         Role newRole = roleRepository.findByCode(newRoleCode)
-                .orElseThrow(() -> new RoleNotFoundException());
+            .orElseThrow(() -> new RoleNotFoundException());
 
         user.getRoles().removeIf(role -> 
             role.getCode().equalsIgnoreCase("PENDING") || 

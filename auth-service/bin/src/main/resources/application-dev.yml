@@ -1,0 +1,124 @@
+server:
+  port: 8005
+  forward-headers-strategy: framework
+  tomcat:
+    remoteip:
+      remote-ip-header: x-forwarded-for
+      protocol-header: x-forwarded-proto
+  servlet:
+    session:
+      cookie:
+        name: JSESSIONID
+        http-only: true
+        same-site: lax 
+
+
+
+nhutphuongasasa:
+  frontend:
+    callback-url: http://localhost:3000/auth/callback
+  security:
+    access-token-validity-in-seconds: 3600
+    jwt-issuer: "auth-service"
+  aes-Key: "c2FmZS1rZXktMzItYnl0ZXMtc3RyaW5nLWZvci10ZXN0" 
+  key-rotation-cron: 0 0 0 1 * ?
+
+spring:
+  # session:
+    # store-type: redis
+  application:
+    name: auth-service
+  security:
+    user:
+      password: ""
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            scope:
+              - openid
+              - email
+              - profile
+          provider:
+            google:
+              authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
+              token-uri: https://oauth2.googleapis.com/token
+              user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
+              user-name-attribute: sub
+      authorizationserver:
+        issuer: http://localhost:8000/api/auth
+        endpoint:
+          authorization-uri: "/oauth2/authorize"
+          token-uri: "/oauth2/token"              
+          jwk-set-uri: "/oauth2/jwks"           
+          token-revocation-uri: "/oauth2/revoke"
+
+# ================================database ===============================
+  jpa:
+    hibernate:
+      ddl-auto: none
+  datasource:
+    hikari:
+      initialization-fail-timeout: 20000
+      connect-timeout: 20000
+    url: jdbc:postgresql://ep-solitary-violet-a1x058fx-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+    username: neondb_owner
+    password: npg_6SFCDrQR0ofG
+    driver-class-name: org.postgresql.Driver
+
+  flyway:
+    enabled: true
+    url: jdbc:postgresql://ep-solitary-violet-a1x058fx-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+    user: neondb_owner
+    password: npg_6SFCDrQR0ofG
+    locations: classpath:db/migration           
+    baseline-on-migrate: false                    
+    clean-disabled: false
+
+# ================================logging ===============================
+logging:
+  level:
+    root: INFO
+    org.springframework.security: TRACE
+    org.springframework.security.web.access.intercept.AuthorizationFilter: TRACE
+    org.springframework.security.oauth2: TRACE
+    org.springframework.web.server.adapter.HttpWebHandlerAdapter: TRACE
+    org.flywaydb: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.springframework.web: INFO
+    org.springframework.cloud: INFO
+    com.cloud.auth_service: DEBUG
+  file:
+    name: logs/auth-service.log
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} %5p [%thread] %-40.40logger{39} [%X{traceId:-},%X{spanId:-}] : %m%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} %5p [%thread] %-40.40logger{39} [%X{traceId:-},%X{spanId:-}] : %m%n"
+
+# ================================tracing & health ===============================
+management:
+  health:
+    show-details: always
+    show-components: always
+    diskspace:
+      enabled: true
+    refresh:
+      enabled: true
+    probes:
+      enabled: true
+    
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,loggers,env,threaddump,heapdump,prometheus,zipkin
+      base-path: /actuator
+    
+  mappings:
+    health: healthcheck
+
+  tracing:
+    sampling:
+      probability: 1.0
+  

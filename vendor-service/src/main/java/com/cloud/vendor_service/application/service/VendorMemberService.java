@@ -8,7 +8,7 @@ import org.springframework.stereotype.Service;
 import com.cloud.vendor_service.application.dto.response.VendorMemberResponse;
 import com.cloud.vendor_service.domain.enums.VendorMemberRole;
 
-// import lombok.RequiredArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -18,11 +18,16 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 @Service
-// @RequiredArgsConstructor
+@RequiredArgsConstructor
 public class VendorMemberService {
-    //se lay vendorid tu header con jwt se la cua user 
         
-    public void InviteMember(String email, VendorMemberRole role){}
+    public void InviteMember(String email, VendorMemberRole role){
+        
+    }
+
+    private UUID checkExistedUser(String email){
+        return null;
+    }
 
     public void AcceptInviteFromOrganization(){}
 

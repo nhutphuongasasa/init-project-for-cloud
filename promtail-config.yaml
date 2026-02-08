@@ -25,5 +25,28 @@ scrape_configs:
           expression: "^\\S+ +(?P<level_name>\\S+) .*"
           
       - labels:
-          instance: instance_name
+          job: instance_name
+          level: level_name
+
+  - job_name: api-gateway_logs
+    static_configs:
+      - targets: [localhost]
+        labels:
+          env: dev
+          project: wms
+          __path__: /data/logs/auth-service/*.log
+    
+    pipeline_stages:
+      - multiline:
+          firstline: ^\d{4}-\d{2}-\d{2}
+      
+      - regex:
+          source: filename
+          expression: ".*/(?P<instance_name>.*)/.*\\.log"
+      
+      - regex:
+          expression: "^\\S+ +(?P<level_name>\\S+) .*"
+          
+      - labels:
+          job: instance_name
           level: level_name

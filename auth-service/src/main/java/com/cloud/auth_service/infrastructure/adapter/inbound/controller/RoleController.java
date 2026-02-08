@@ -14,22 +14,26 @@ import com.cloud.auth_service.application.dto.response.RoleResponse;
 import com.cloud.auth_service.application.service.RoleService;
 import com.cloud.auth_service.common.response.FormResponse;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
  * @author nhutphuong
  * @since 2026/1/13 21:30h
- * @version 1
+ * @version 2
  */
 @Slf4j
 @RestController
 @RequestMapping("/roles")
 @RequiredArgsConstructor
+@Tag(name = "Role Controller")
 public class RoleController {
 
     private final RoleService roleService;
 
+    @Operation(summary = "Lấy quyền của tôi")
     @GetMapping("/me")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<FormResponse<List<RoleResponse>>> getMyRoles() {
@@ -43,6 +47,7 @@ public class RoleController {
         );
     }
 
+    @Operation(summary = "Lấy quyền theo UserId")
     @GetMapping("/user/{userId}")
     @PreAuthorize("hasRole('SYSTEM_ADMIN')")
     public ResponseEntity<FormResponse<List<RoleResponse>>> getRolesByUserId(@PathVariable UUID userId) {
@@ -56,6 +61,7 @@ public class RoleController {
         );
     }
 
+    @Operation(summary = "Lấy tất cả các quyền")
     @GetMapping
     @PreAuthorize("hasRole('SYSTEM_ADMIN')")
     public ResponseEntity<FormResponse<List<RoleResponse>>> getAllRoles() {
@@ -68,6 +74,7 @@ public class RoleController {
         );
     }
 
+    @Operation(summary = "Cập nhật quyền")
     @PutMapping("/{roleId}")
     @PreAuthorize("hasRole('SYSTEM_ADMIN')")
     public ResponseEntity<FormResponse<RoleResponse>> updateRole(
@@ -84,6 +91,7 @@ public class RoleController {
         );
     }
 
+    @Operation(summary = "Xóa (vô hiệu hóa) quyền")
     @DeleteMapping("/{roleId}")
     @PreAuthorize("hasRole('SYSTEM_ADMIN')")
     public ResponseEntity<FormResponse<Void>> deleteRole(@PathVariable UUID roleId) {
@@ -96,6 +104,7 @@ public class RoleController {
         );
     }
 
+    @Operation(summary = "Phê duyệt người dùng mới")
     @PreAuthorize("hasRole('SYSTEM_ADMIN')")
     @PostMapping("/user/{userId}/approve")
     public ResponseEntity<FormResponse<Void>> approveUser(
@@ -111,6 +120,7 @@ public class RoleController {
         );
     }
 
+    @Operation(summary = "Thêm quyền cho người dùng")
     @PreAuthorize("hasRole('SYSTEM_ADMIN')")
     @PostMapping("/user/{userId}/add")
     public ResponseEntity<FormResponse<Void>> addRoleToUser(
@@ -126,6 +136,7 @@ public class RoleController {
         );
     }
 
+    @Operation(summary = "Thu hồi quyền của người dùng")
     @PreAuthorize("hasRole('SYSTEM_ADMIN')")
     @DeleteMapping("/user/{userId}/remove")
     public ResponseEntity<FormResponse<Void>> removeRoleFromUser(

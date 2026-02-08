@@ -58,12 +58,8 @@ public class ProductCommandService {
     private final SkuHelper skuHelper;
     private final ProductVariantRepository productVariantRepository;
 
-    public void updateBasicInfo(Product product, ProductImportRow row, ImportResult result){
-        
-    }
+    // public void updateBasicInfo(Product product, ProductImportRow row, ImportResult result){}
 
-
-    
     public void importProductFromExcel(ExcelCreateProductDto excelDto){
         ProductImportRow first = excelDto.getRows().get(0);
         Row firstRow = first.getRow();
@@ -141,13 +137,15 @@ public class ProductCommandService {
     }
 
     public ProductResponse checkAndCreateProduct(ProductCreateRequest productRequest) {
-        log.info("Product request: {}", productRequest);
+        log.debug("Product request: {}", productRequest);
 
         if(checkSlug(productRequest.getSlug()) != null){
+            log.warn("Check Slug is not exists");
             throw new SlugAlreadyExistsException(productRequest.getSlug());
         }
-        log.info("Check Slug is not exists");
+        
         Product product = createProduct(productRequest);
+        
         log.info("Product created successfully with id={}", productRequest.getSlug());
         
         return productMapper.toProductResponse(product);
@@ -167,7 +165,9 @@ public class ProductCommandService {
         List<ProductVariant> variants = buildProductVariant(request.getProductVariant(), vendorId, product);
         
         variants.forEach(product :: addVariant);
-        log.info("Product variants: {}", variants);
+
+        log.debug("Product variants: {}", variants);
+
         return productRepository.save(product);
     }
 
@@ -178,20 +178,20 @@ public class ProductCommandService {
     }
 
     private ProductVariant buildVariant(
-            ProductVariantRequest request, 
-            int index, 
-            UUID vendorId, 
-            Product product) {
-        
-        log.info("===== buildVariant START: index={}", index);
+        ProductVariantRequest request, 
+        int index, 
+        UUID vendorId, 
+        Product product
+    ) {    
+        log.debug("===== buildVariant START: index={}", index);
         
         ProductVariant variant = productMapper.toProductVariant(request, vendorId, product);
-        log.info("===== After mapper: variant.id={}, variant.images={}", 
+        log.debug("===== After mapper: variant.id={}, variant.images={}", 
             variant.getId(), 
             variant.getImages() != null ? "NOT_NULL (size=" + variant.getImages().size() + ")" : "NULL");
         
         variant.setSku(skuHelper.generateSku(vendorId, product, index));
-        log.info("===== After setSku: {}", variant.getSku());
+        log.debug("===== After setSku: {}", variant.getSku());
         
         // Kiểm tra images list
         if (variant.getImages() == null) {
@@ -200,29 +200,30 @@ public class ProductCommandService {
         }
         
         List<ProductImage> images = buildImages(request.getImages(), variant);
-        log.info("===== buildImages returned {} images", images.size());
+        log.debug("===== buildImages returned {} images", images.size());
         
         // Log trước khi add
-        log.info("===== Before addImage: variant.images.size={}", variant.getImages().size());
+        log.debug("===== Before addImage: variant.images.size={}", variant.getImages().size());
         
         images.forEach(img -> {
-            log.info("===== Adding image: url={}, variant.id={}, img.variant={}", 
+
+            log.debug("===== Adding image: url={}, variant.id={}, img.variant={}", 
                 img.getUrl(), 
                 variant.getId(),
                 img.getVariant() != null ? "NOT_NULL" : "NULL");
+
             variant.addImage(img);
-            log.info("===== After addImage: img.variant={}", img.getVariant() != null ? "NOT_NULL" : "NULL");
+            log.debug("===== After addImage: img.variant={}", img.getVariant() != null ? "NOT_NULL" : "NULL");
         });
         
-        log.info("===== After addImage loop: variant.images.size={}", variant.getImages().size());
-        log.info("===== buildVariant END");
+        log.debug("===== After addImage loop: variant.images.size={}", variant.getImages().size());
+        log.debug("===== buildVariant END");
         
         return variant;
     }
 
-
     private List<ProductImage> buildImages(List<ProductImageRequest> requests, ProductVariant variant) {
-        log.info("===== buildImages START: requests={}, variant.id={}", 
+        log.debug("===== buildImages START: requests={}, variant.id={}", 
             requests != null ? requests.size() : "NULL",
             variant != null ? variant.getId() : "NULL");
         
