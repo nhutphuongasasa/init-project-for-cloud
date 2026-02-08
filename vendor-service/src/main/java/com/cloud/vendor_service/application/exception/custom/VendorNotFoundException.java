@@ -10,11 +10,8 @@ import com.cloud.vendor_service.common.exception.ResourceNotFoundException;
  * @created 24/11/2025
  */
 public class VendorNotFoundException extends ResourceNotFoundException {
-    public VendorNotFoundException(UUID id) {
-        super("id", id.toString());
-    }
-    public VendorNotFoundException(String slug) {
-        super("slug", slug);
+    public VendorNotFoundException(Object ... args) {
+        super("Vendor", args);
     }
 }
 

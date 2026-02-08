@@ -2,9 +2,11 @@ package com.cloud.vendor_service.infrastructure.adapter.outbound.openfeign.fallb
 
 import com.cloud.vendor_service.application.dto.response.UserResponse;
 import com.cloud.vendor_service.infrastructure.adapter.outbound.openfeign.client.AuthClient;
+import com.cloud.vendor_service.infrastructure.config.properties.AuthClientProperties;
 
 import feign.FeignException;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.cloud.openfeign.FallbackFactory;
@@ -12,17 +14,14 @@ import org.springframework.stereotype.Component;
 
 /**
  * @author nhutphuong
- * @since 2024-06-15 11:04
+ * @since 2025-02-8 11:04
  * @version 1.0`
  */
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class AuthClientFallbackFactory implements FallbackFactory<AuthClient> {
-
-    private static final String DEFAULT_PROVIDER = "system";
-    private static final String DEFAULT_EMAIL = "unknown@system.local";
-    private static final String DEFAULT_FULL_NAME = "Guest User (Fallback)";
-    private static final String DEFAULT_AVATAR = null;
+    private final AuthClientProperties authClientProperties;
 
     @Override
     public AuthClient create(Throwable cause) {
@@ -46,10 +45,10 @@ public class AuthClientFallbackFactory implements FallbackFactory<AuthClient> {
             String fallbackName = determineFallbackName(cause);
 
             return UserResponse.builder()
-                .provider(DEFAULT_PROVIDER)
-                .email(email != null ? email : DEFAULT_EMAIL)
+                .provider(authClientProperties.getDEFAULT_PROVIDER())
+                .email(email != null ? email : authClientProperties.getDEFAULT_EMAIL())
                 .fullName(fallbackName)
-                .avatarUrl(DEFAULT_AVATAR)
+                .avatarUrl(authClientProperties.getDEFAULT_AVATAR())
                 .build();
         }
 
@@ -71,7 +70,7 @@ public class AuthClientFallbackFactory implements FallbackFactory<AuthClient> {
             if (cause instanceof FeignException fe && fe.status() >= 500) {
                 return "Service Error (Server Side)";
             }
-            return DEFAULT_FULL_NAME;
+            return authClientProperties.getDEFAULT_FULL_NAME();
         }
     }
 }

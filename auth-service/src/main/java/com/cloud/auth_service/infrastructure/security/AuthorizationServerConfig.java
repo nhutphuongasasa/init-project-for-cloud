@@ -1,13 +1,12 @@
 package com.cloud.auth_service.infrastructure.security;
 
+import com.cloud.auth_service.application.exception.UserNotFoundException;
 import com.cloud.auth_service.domain.model.Role;
 import com.cloud.auth_service.domain.model.User;
 import com.cloud.auth_service.infrastructure.adapter.outbound.repository.UserRepository;
 import com.cloud.auth_service.infrastructure.config.properties.AppProperties;
-import com.cloud.auth_service.infrastructure.exception.UserNotFoundException;
 import com.cloud.auth_service.infrastructure.security.components.CustomOidcUserService;
 import com.cloud.auth_service.infrastructure.security.components.LoginSuccessHandler;
-// import com.cloud.auth_service.infrastructure.security.components.OAuth2TokenSuccessHandler;
 import com.cloud.auth_service.infrastructure.security.keys.JwtManager;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -284,6 +283,7 @@ public class AuthorizationServerConfig {
                         claims.put("type", "USER");
                         claims.put("email", user.getEmail());
                         claims.put("fullName", user.getFullName());
+                        
 
                         Set<String> roles = user.getRoles().stream()
                                 .map(Role::toString)

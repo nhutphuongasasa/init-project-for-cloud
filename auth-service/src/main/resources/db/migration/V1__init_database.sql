@@ -15,7 +15,6 @@ CREATE TABLE users (
 );
 
 CREATE INDEX idx_users_email ON users(email);
--- CREATE INDEX idx_users_provider ON users(provider, provider_id);
 
 CREATE TABLE roles (
     id UUID PRIMARY KEY ,
@@ -30,6 +29,31 @@ CREATE TABLE user_roles (
     role_id UUID REFERENCES roles(id) ON DELETE CASCADE,
     PRIMARY KEY (user_id, role_id)
 );
+
+CREATE TABLE permissions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    code VARCHAR(100) UNIQUE NOT NULL,
+    name VARCHAR(255) NOT NULL,      
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE role_permissions (
+    role_id UUID REFERENCES roles(id) ON DELETE CASCADE,
+    permission_id UUID REFERENCES permissions(id) ON DELETE CASCADE,
+    PRIMARY KEY (role_id, permission_id)
+);
+
+CREATE TABLE user_vendor_access (
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    vendor_id UUID NOT NULL, 
+    role_id UUID REFERENCES roles(id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, vendor_id)
+);
+
+CREATE INDEX idx_uva_user_id ON user_vendor_access(user_id);
 
 CREATE TABLE oauth2_registered_client (
     id varchar(100) NOT NULL,

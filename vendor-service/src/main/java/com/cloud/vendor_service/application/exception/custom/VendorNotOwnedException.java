@@ -8,7 +8,7 @@ import com.cloud.vendor_service.common.exception.ForbiddenException;
  * @created 24/11/2025
  */
 public class VendorNotOwnedException extends ForbiddenException{
-    public VendorNotOwnedException(String message){
-        super(message);
+    public VendorNotOwnedException(String message, Object ... args) {
+        super(message, args);
     }
 }

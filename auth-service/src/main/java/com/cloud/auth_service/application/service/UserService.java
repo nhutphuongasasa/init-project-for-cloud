@@ -11,11 +11,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.cloud.auth_service.application.dto.response.UserResponse;
+import com.cloud.auth_service.application.exception.UserNotFoundException;
+import com.cloud.auth_service.application.mapper.UserMapper;
 import com.cloud.auth_service.domain.model.Role;
 import com.cloud.auth_service.domain.model.User;
 import com.cloud.auth_service.infrastructure.adapter.outbound.repository.UserRepository;
-import com.cloud.auth_service.infrastructure.exception.UserNotFoundException;
-import com.cloud.auth_service.infrastructure.mapper.UserMapper;
 import com.cloud.auth_service.common.utils.jwt.JwtUtils;
 
 import lombok.RequiredArgsConstructor;

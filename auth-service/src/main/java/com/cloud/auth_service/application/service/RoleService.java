@@ -8,14 +8,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.cloud.auth_service.application.dto.request.UpdateRoleRequest;
 import com.cloud.auth_service.application.dto.response.RoleResponse;
+import com.cloud.auth_service.application.exception.RoleNotFoundException;
+import com.cloud.auth_service.application.exception.UserNotFoundException;
+import com.cloud.auth_service.application.mapper.RoleMapper;
 import com.cloud.auth_service.common.utils.jwt.JwtUtils;
 import com.cloud.auth_service.domain.model.Role;
 import com.cloud.auth_service.domain.model.User;
 import com.cloud.auth_service.infrastructure.adapter.outbound.repository.RoleRepository;
 import com.cloud.auth_service.infrastructure.adapter.outbound.repository.UserRepository;
-import com.cloud.auth_service.infrastructure.exception.RoleNotFoundException;
-import com.cloud.auth_service.infrastructure.exception.UserNotFoundException;
-import com.cloud.auth_service.infrastructure.mapper.RoleMapper;
 
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;

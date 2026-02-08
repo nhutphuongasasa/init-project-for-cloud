@@ -39,7 +39,6 @@ public class ProfileService {
 
         Vendor existedVendor = vendorRepository.findById(vendorId)
             .orElseThrow(() -> {
-                log.error("Vendor not found with id={}", vendorId);
                 return new VendorNotFoundException(vendorId);
             });
 

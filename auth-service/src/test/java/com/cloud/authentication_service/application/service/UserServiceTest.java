@@ -22,14 +22,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 
 import com.cloud.auth_service.application.dto.response.UserResponse;
+import com.cloud.auth_service.application.exception.UserNotFoundException;
+import com.cloud.auth_service.application.mapper.UserMapper;
 import com.cloud.auth_service.application.service.RoleService;
 import com.cloud.auth_service.application.service.UserService;
 import com.cloud.auth_service.common.utils.jwt.JwtUtils;
 import com.cloud.auth_service.domain.model.Role;
 import com.cloud.auth_service.domain.model.User;
 import com.cloud.auth_service.infrastructure.adapter.outbound.repository.UserRepository;
-import com.cloud.auth_service.infrastructure.exception.UserNotFoundException;
-import com.cloud.auth_service.infrastructure.mapper.UserMapper;
 
 @ExtendWith(MockitoExtension.class)
 public class UserServiceTest {

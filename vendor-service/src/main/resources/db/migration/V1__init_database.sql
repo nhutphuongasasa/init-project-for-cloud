@@ -23,10 +23,6 @@ CREATE TABLE vendor_members (
     vendor_id   UUID NOT NULL,
     user_id     UUID NOT NULL,
     
-    role        VARCHAR(50) NOT NULL DEFAULT 'STAFF' CHECK (role IN ('OWNER', 'STAFF', 'VIEWER')),
-    
-    permissions JSONB DEFAULT '{}'::jsonb,
-    
     status      VARCHAR(20) DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE', 'INVITED', 'SUSPENDED', 'LEFT')),
     
     joined_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

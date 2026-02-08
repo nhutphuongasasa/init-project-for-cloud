@@ -1,4 +1,4 @@
-package com.cloud.auth_service.infrastructure.exception;
+package com.cloud.auth_service.application.exception;
 
 import com.cloud.auth_service.common.exception.ResourceNotFoundException;
 

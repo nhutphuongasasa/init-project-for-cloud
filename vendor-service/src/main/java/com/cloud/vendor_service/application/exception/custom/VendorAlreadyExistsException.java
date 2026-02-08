@@ -8,7 +8,7 @@ import com.cloud.vendor_service.common.exception.ForbiddenException;
  * @created 24/11/2025
  */
 public class VendorAlreadyExistsException extends ForbiddenException{
-    public VendorAlreadyExistsException(String message){
-        super(message);
+    public VendorAlreadyExistsException(String message, Object ... args) {
+        super(message, args);
     }
 }

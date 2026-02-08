@@ -9,7 +9,6 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import com.cloud.vendor_service.domain.enums.VendorMemberRole;
 import com.cloud.vendor_service.domain.enums.VendorMemberStatus;
 
 import java.time.LocalDateTime;
@@ -40,14 +39,6 @@ public class VendorMember {
 
     @Column(name = "user_id", nullable = false)
     private UUID userId;
-
-    @Default
-    @Column(name = "role", nullable = false, length = 50)
-    @Enumerated(EnumType.STRING) 
-    private VendorMemberRole role = VendorMemberRole.STAFF;
-
-    @Column(name = "permissions", columnDefinition = "jsonb default '{}'::jsonb")
-    private String permissions;  
 
     @Default
     @Column(name = "status", nullable = false, length = 20)

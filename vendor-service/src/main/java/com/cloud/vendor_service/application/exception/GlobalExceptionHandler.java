@@ -12,12 +12,14 @@ import com.cloud.vendor_service.common.exception.GlobalErrorCode;
 import com.cloud.vendor_service.common.exception.BaseException;
 
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * @author nhutphuong
  * @version 1.0
  * @created 24/11/2025
  */
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -26,6 +28,9 @@ public class GlobalExceptionHandler {
         BaseException ex,
         HttpServletRequest request
     ){
+        log.warn("Business Error [{}]: {} | Path: {} | Args: {}", 
+            ex.getCode(), ex.getMessage(), request.getRequestURI(), ex.getDetails());
+            
         return new ResponseEntity<>(
             ErrorResponse.builder()
                 .code(ex.getCode())
@@ -43,6 +48,7 @@ public class GlobalExceptionHandler {
         Exception ex,
         HttpServletRequest request
     ){
+        log.error("Unexpected error occurred: {}", ex.getMessage(), ex);    
         return new ResponseEntity<>(
             ErrorResponse.builder()
                 .code(GlobalErrorCode.INTERNAL_SERVER_ERROR)

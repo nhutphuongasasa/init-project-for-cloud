@@ -10,9 +10,13 @@ import com.cloud.vendor_service.infrastructure.config.FeignClientConfig;
 
 import jakarta.validation.Valid;
 
+/**
+ * @author nhutphuong
+ * @since 2025-02-8
+ * @version 1.0
+ */
 @FeignClient(
     name = "auth-service",
-    url = "${auth.service.url:http://localhost:8005}",
     configuration = FeignClientConfig.class,
     fallbackFactory = AuthClientFallbackFactory.class  
 )

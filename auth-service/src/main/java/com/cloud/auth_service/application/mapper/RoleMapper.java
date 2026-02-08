@@ -1,4 +1,4 @@
-package com.cloud.auth_service.infrastructure.mapper;
+package com.cloud.auth_service.application.mapper;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.MappingTarget;

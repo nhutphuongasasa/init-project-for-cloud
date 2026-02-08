@@ -5,8 +5,11 @@ import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 
+import com.cloud.vendor_service.application.dto.response.UserResponse;
 import com.cloud.vendor_service.application.dto.response.VendorMemberResponse;
-import com.cloud.vendor_service.domain.enums.VendorMemberRole;
+import com.cloud.vendor_service.application.exception.custom.UserNotFoundException;
+import com.cloud.vendor_service.infrastructure.adapter.outbound.openfeign.client.AuthClient;
+import com.cloud.vendor_service.infrastructure.adapter.outbound.repository.VendorMemberRepository;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,13 +23,24 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @RequiredArgsConstructor
 public class VendorMemberService {
-        
-    public void InviteMember(String email, VendorMemberRole role){
-        
+    private final AuthClient authClient;
+    private final VendorMemberRepository vendorMemberRepository;
+
+    public void InviteMember(String email){
+        UUID userId = checkExistedUser(email);
+
+        // UUID vendorId = 
     }
 
     private UUID checkExistedUser(String email){
-        return null;
+        UserResponse userResponse = authClient.getUserByEmail(email);
+
+        //tranh su co khong mong muon
+        if (userResponse == null || userResponse.getEmail() == null || userResponse.getUserId() == null){
+            throw new UserNotFoundException(email);
+        }
+        
+        return userResponse.getUserId();    
     }
 
     public void AcceptInviteFromOrganization(){}
