@@ -1,8 +1,11 @@
 package com.cloud.vendor_service.common.utils.jwt;
 
 import java.time.Instant;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.security.core.Authentication;
@@ -13,16 +16,58 @@ import org.springframework.stereotype.Component;
 
 /**
  * @author nhutphuong
- * @version 1.0
+ * @version 1.1
  * @created 25/11/2025
  */
 @Component
 public final class JwtUtils {
 
+    public List<String> getAuthorities() {
+        return Optional.ofNullable(getJwt()) 
+            .map(jwt -> jwt.getClaimAsStringList("authorities"))
+            .orElse(Collections.emptyList());
+    }
+
+    public List<String> getSystemRoles() {
+        return Optional.ofNullable(getJwt())
+                .map(jwt -> jwt.getClaimAsStringList("system_roles"))
+                .orElse(Collections.emptyList());
+    }
+
+    public List<String> getSystemPermissions() {
+        return Optional.ofNullable(getJwt())
+                .map(jwt -> jwt.getClaimAsStringList("system_authorities"))
+                .orElse(Collections.emptyList());
+    }
+
+    public List<String> getVendorRoles() {
+        return Optional.ofNullable(getJwt())
+                .map(jwt -> jwt.getClaimAsStringList("vendor_roles"))
+                .orElse(Collections.emptyList());
+    }
+
+    public List<String> getVendorPermissions() {
+        return Optional.ofNullable(getJwt())
+                .map(jwt -> jwt.getClaimAsStringList("vendor_authorities"))
+                .orElse(Collections.emptyList());
+    }
+
+    public List<String> getVendorIds() {
+        return Optional.ofNullable(getJwt())
+                .map(jwt -> jwt.getClaimAsStringList("vendor_ids"))
+                .orElse(Collections.emptyList());
+    }
+
+    public Optional<UUID> getCurrentVendorId() {
+        return Optional.ofNullable(getJwt())
+            .map(jwt -> jwt.getClaimAsString("vendor_id"))
+            .map(UUID::fromString);
+    }
+
     public String getTokenFromContextHolder() {
         Authentication auth = getAuthentication();
-        if (auth instanceof JwtAuthenticationToken jwtauth) {
-            return jwtauth.getToken().getTokenValue();
+        if (auth instanceof JwtAuthenticationToken jwtAuth) {
+            return jwtAuth.getToken().getTokenValue();
         }
         return null;
     }

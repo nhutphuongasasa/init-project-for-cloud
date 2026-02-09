@@ -22,6 +22,8 @@ public class Role {
     @Column(updatable = false, nullable = false)
     private UUID id;
 
+    private UUID vendorId;
+
     @Column(unique = true, nullable = false, length = 100)
     private String code;
 
@@ -43,6 +45,6 @@ public class Role {
 
     @Override
     public String toString(){
-        return this.name;
+        return this.code;
     }
 }

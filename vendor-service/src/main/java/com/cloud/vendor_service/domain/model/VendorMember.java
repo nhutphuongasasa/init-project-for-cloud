@@ -11,7 +11,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import com.cloud.vendor_service.domain.enums.VendorMemberStatus;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.UUID;
 
 /**
@@ -46,14 +46,14 @@ public class VendorMember {
     private VendorMemberStatus status = VendorMemberStatus.ACTIVE;
 
     @Column(name = "joined_at", nullable = false)
-    private LocalDateTime joinedAt;
+    private Instant joinedAt;
 
     @Column(name = "left_at")
-    private LocalDateTime leftAt;
+    private Instant leftAt;
 
     @CreatedDate
-    private LocalDateTime createdAt;
+    private Instant createdAt;
     
     @LastModifiedDate
-    private LocalDateTime updatedAt;
+    private Instant updatedAt;
 }

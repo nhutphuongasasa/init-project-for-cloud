@@ -1,7 +1,5 @@
 package com.cloud.vendor_service.application.exception.custom;
 
-import java.util.UUID;
-
 import com.cloud.vendor_service.common.exception.ResourceNotFoundException;
 
 /**

@@ -12,5 +12,5 @@ import com.cloud.vendor_service.domain.model.VendorMember;
  * @since 2026/1/15 20:27h
  */
 public interface VendorMemberRepository extends JpaRepository<VendorMember, UUID> {
-    
+    Boolean existsByVendorIdAndUserId(UUID vendorId, UUID userId);
 }

@@ -53,6 +53,7 @@ import org.springframework.security.web.authentication.LoginUrlAuthenticationEnt
 import org.springframework.web.filter.ForwardedHeaderFilter;
 
 import java.time.Instant;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -246,7 +247,7 @@ public class AuthorizationServerConfig {
     private void saveClientIfNotExists(RegisteredClientRepository repository, RegisteredClient client) {
         if (repository.findByClientId(client.getClientId()) == null) {
             repository.save(client);
-            log.info("✅ Registered client: {}", client.getClientId());
+            log.info("Registered client: {}", client.getClientId());
         }
     }
 
@@ -283,30 +284,44 @@ public class AuthorizationServerConfig {
                         claims.put("type", "USER");
                         claims.put("email", user.getEmail());
                         claims.put("fullName", user.getFullName());
-                        
 
-                        Set<String> roles = user.getRoles().stream()
-                                .map(Role::toString)
-                                .collect(Collectors.toSet());
-                        claims.put("roles", roles);
+                        //mac dinh se co role guest cho moi user va employee wms
+                        Set<String> systemRoles = user.getRoles().stream()
+                            .map(Role::toString)
+                            .collect(Collectors.toSet());
+
+                        Set<String> systemPermissions = new HashSet<>();
+                        user.getRoles().forEach(role -> 
+                            role.getPermissions().forEach(p -> systemPermissions.add(p.getCode()))
+                        );
+
+                        Set<String> vendorPermissions = new HashSet<>();
+                        Set<String> vendorRoles = new HashSet<>();
+
+                        user.getUserVendorAccesses().forEach(access -> {
+                            vendorRoles.add(access.getRole().getCode());
+                            access.getRole().getPermissions().forEach(p -> vendorPermissions.add(p.getCode()));
+                        });
+
+                        claims.put("system_roles", systemRoles);
+                        claims.put("system_authorities", systemPermissions);
+                        claims.put("vendor_roles", vendorRoles);
+                        claims.put("vendor_authorities", vendorPermissions);
+
+                        List<String> vendorIds = user.getUserVendorAccesses().stream()
+                            .map(uva -> uva.getId().getVendorId().toString())
+                            .collect(Collectors.toList());
+                        claims.put("vendor_ids", vendorIds);
+
+                        // add vao authorities de de dnag dung @preauthority
+                        Set<String> combinedAuthorities = new HashSet<>();
+                        combinedAuthorities.addAll(systemPermissions);
+                        combinedAuthorities.addAll(vendorPermissions);
+                        claims.put("authorities", combinedAuthorities);
                     });
                 }
 
-                // if (AuthorizationGrantType.CLIENT_CREDENTIALS.equals(context.getAuthorizationGrantType())) {
-                //     context.getClaims()
-                //     .issuer(appProperties.getSecurity().getJwtIssuer())
-                //         .issuedAt(Instant.now())
-                //         .expiresAt(Instant.now().plusSeconds(appProperties.getSecurity().getAccessTokenValidityInSeconds()))
-                //     .claims(claims -> {
-                //         claims.put("type", "SERVICE");
-                //         claims.put("service_id", context.getRegisteredClient().getClientId());
-                //         claims.put("service_name", context.getRegisteredClient().getClientName());
-
-                //         Set<String> scopes = context.getRegisteredClient().getScopes();
-                //         claims.put("authorities", scopes);
-                //     });
-                // }
-
+                //kiem tra in ra de debug
                 try {
                     Map<String, Object> allClaims = context.getClaims().build().getClaims();
                     String prettyJson = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(allClaims);
@@ -325,6 +340,7 @@ public class AuthorizationServerConfig {
             JWKSet jwkSet = new JWKSet(rsaKey);
             this.jwkSource = new ImmutableJWKSet<>(jwkSet);
         }
+
         return this.jwkSource;
     }
 

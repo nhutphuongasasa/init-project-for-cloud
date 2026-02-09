@@ -26,7 +26,7 @@ public class UserVendorAccessService {
 
     public UserAccessDTO getUserAccessInfo(UUID userId) {
         UserVendorAccess access = accessRepository.findByUserId(userId)
-                .orElseThrow(() -> new RuntimeException("User này chưa được gán vào bất kỳ Vendor nào!"));
+                .orElseThrow(() -> new RuntimeException("User is not associated with any vendor"));
 
         Set<String> permissions = access.getRole().getPermissions().stream()
                 .map(Permission::getCode)

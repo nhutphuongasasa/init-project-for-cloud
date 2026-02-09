@@ -18,6 +18,7 @@ CREATE INDEX idx_users_email ON users(email);
 
 CREATE TABLE roles (
     id UUID PRIMARY KEY ,
+    vendor_id UUID,
     code VARCHAR(50) UNIQUE NOT NULL,
     name VARCHAR(100) UNIQUE NOT NULL,
     is_active BOOLEAN DEFAULT TRUE,
@@ -126,6 +127,58 @@ CREATE TABLE jwt_keys (
 );
 
 INSERT INTO roles (id, code, name, description) VALUES 
-(gen_random_uuid(), 'ROLE_ADMIN', 'Administrator', 'Quản trị toàn hệ thống'),
-(gen_random_uuid(), 'ROLE_USER', 'User', 'Người dùng chính thức'),
-(gen_random_uuid(), 'ROLE_GUEST', 'Guest', 'Người dùng chưa định danh hoặc khách');
+(gen_random_uuid(), 'SYS_ADMIN', 'System Administrator', 'Platform-wide administrator with full access to all vendors'),
+(gen_random_uuid(), 'VENDOR_OWNER', 'Vendor Owner', 'The primary account holder for a specific vendor with full control'),
+(gen_random_uuid(), 'VENDOR_MANAGER', 'Vendor Manager', 'Can manage products, stock, and orders but cannot manage billing or members'),
+(gen_random_uuid(), 'VENDOR_STAFF', 'Vendor Staff', 'Operational role for handling day-to-day warehouse and order tasks');
+
+INSERT INTO permissions (id, code, name, description) VALUES 
+(gen_random_uuid(), '*:*', 'Full Access', 'Ultimate authority across all services'),
+
+(gen_random_uuid(), 'vendor:*', 'Full Vendor Management', 'Complete control over vendor profile and members'),
+(gen_random_uuid(), 'vendor:view', 'View Vendor', 'Permission to view organization and store details'),
+(gen_random_uuid(), 'vendor:update', 'Update Vendor', 'Permission to edit store information'),
+(gen_random_uuid(), 'vendor:manage_members', 'Manage Members', 'Permission to invite, remove, or change member roles'),
+
+(gen_random_uuid(), 'product:*', 'Full Product Management', 'Complete control over product catalog'),
+(gen_random_uuid(), 'product:view', 'View Products', 'Permission to browse and view product details'),
+(gen_random_uuid(), 'product:create', 'Create Product', 'Permission to add new products'),
+(gen_random_uuid(), 'product:update', 'Update Product', 'Permission to edit existing products'),
+(gen_random_uuid(), 'product:delete', 'Delete Product', 'Permission to remove products from the system'),
+
+(gen_random_uuid(), 'inventory:*', 'Full Inventory Management', 'Complete control over stock and warehouses'),
+(gen_random_uuid(), 'inventory:view', 'View Inventory', 'Permission to view stock levels and locations'),
+(gen_random_uuid(), 'inventory:adjust', 'Adjust Stock', 'Permission to perform stock counts and adjustments'),
+(gen_random_uuid(), 'inventory:transfer', 'Transfer Stock', 'Permission to move goods between locations/warehouses'),
+
+(gen_random_uuid(), 'order:*', 'Full Order Management', 'Complete control over order lifecycle'),
+(gen_random_uuid(), 'order:view', 'View Orders', 'Permission to view order lists and details'),
+(gen_random_uuid(), 'order:create', 'Create Order', 'Permission to generate new orders'),
+(gen_random_uuid(), 'order:update', 'Process Order', 'Permission to approve, ship, or cancel orders'),
+(gen_random_uuid(), 'order:report', 'View Reports', 'Permission to access sales and operational analytics');
+
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT (SELECT id FROM roles WHERE code = 'SYS_ADMIN'), id 
+FROM permissions 
+WHERE code = '*:*';
+
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT (SELECT id FROM roles WHERE code = 'VENDOR_OWNER'), id 
+FROM permissions 
+WHERE code IN ('vendor:*', 'product:*', 'inventory:*', 'order:*');
+
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT (SELECT id FROM roles WHERE code = 'VENDOR_MANAGER'), id 
+FROM permissions 
+WHERE code IN ('vendor:view', 'product:*', 'inventory:*', 'order:*');
+
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT (SELECT id FROM roles WHERE code = 'VENDOR_STAFF'), id 
+FROM permissions 
+WHERE code IN (
+    'product:view', 
+    'inventory:view', 
+    'inventory:adjust', 
+    'order:view', 
+    'order:update'
+);
