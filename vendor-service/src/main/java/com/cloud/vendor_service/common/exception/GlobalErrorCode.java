@@ -1,6 +1,7 @@
 package com.cloud.vendor_service.common.exception;
 
 public class GlobalErrorCode {
+    public static final String CONFLICT           = "CONFLICT";
     public static final String NOT_FOUND          = "NOT_FOUND";
     public static final String ALREADY_EXISTS     = "ALREADY_EXISTS";
     public static final String BAD_REQUEST       = "BAD_REQUEST";

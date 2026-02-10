@@ -18,7 +18,7 @@ import com.cloud.vendor_service.application.exception.custom.InvalidVendorStatus
 import com.cloud.vendor_service.application.exception.custom.SlugAlreadyExistsException;
 import com.cloud.vendor_service.application.exception.custom.VendorNotFoundException;
 import com.cloud.vendor_service.application.mapper.VendorMapper;
-import com.cloud.vendor_service.common.utils.security.AuthenticatedUserProvider;
+import com.cloud.vendor_service.common.utils.jwt.JwtUtils;
 import com.cloud.vendor_service.domain.enums.VendorStatus;
 import com.cloud.vendor_service.domain.model.Vendor;
 import com.cloud.vendor_service.domain.model.VendorProfile;
@@ -40,7 +40,7 @@ import lombok.extern.slf4j.Slf4j;
 public class VendorService {
     private final VendorRepository vendorRepository;
     private final VendorMapper vendorMapper;
-    private final AuthenticatedUserProvider userProvider;
+    private final JwtUtils jwtUtils;
 
     @Transactional(readOnly = true)
     public Vendor findByVendorEntityById(@NonNull UUID vendorId){
@@ -82,8 +82,9 @@ public class VendorService {
 
     @Transactional
     public VendorResponse registerVendor(CreateRequest request){
-        UUID vendorId = userProvider.getVendorIdFromAuthentication();
-        String email = userProvider.getEmailFromAuthentication();
+        UUID vendorId = getCurrentVendorId();
+
+        String email = jwtUtils.getCurrentUserEmail();
 
         log.info("Registering new vendor for vendorId={}, email={}, slug={}, logoUrl={}, description={}", vendorId, email, request.getSlug(), request.getLogoUrl(), request.getDescription());
 
@@ -110,7 +111,7 @@ public class VendorService {
 
     @Transactional(readOnly = true)
     public boolean hasVendor(){
-        UUID vendorId = userProvider.getVendorIdFromAuthentication();
+        UUID vendorId = getCurrentVendorId();
 
         boolean exists = vendorRepository.existsById(vendorId);
 
@@ -119,7 +120,7 @@ public class VendorService {
     }
 
     public VendorProfileResponse getMyVendor(){
-        UUID vendorId = userProvider.getVendorIdFromAuthentication();
+        UUID vendorId = getCurrentVendorId();
 
         log.info("Fetching vendor for vendorId={}", vendorId);
 
@@ -194,5 +195,11 @@ public class VendorService {
         return result;
     }
 
+    private UUID getCurrentVendorId(){
+        return jwtUtils.getCurrentVendorId().orElseThrow(() -> {
+            log.error("Vendor ID not found in JWT");
+            return new VendorNotFoundException("Vendor ID not found in JWT");
+        });
+    }
 
 }

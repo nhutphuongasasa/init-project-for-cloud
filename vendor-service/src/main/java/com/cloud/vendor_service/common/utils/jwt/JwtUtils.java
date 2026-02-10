@@ -104,9 +104,9 @@ public final class JwtUtils {
         return jwt != null ? jwt.getIssuedAt() : null;
     }
 
-    public String getCurrentUserId() {
-        Jwt jwt = getJwt();
-        return jwt != null ? jwt.getClaim("sub") : null;
+    public Optional<UUID> getCurrentUserId() {
+        return Optional.ofNullable(getJwt())
+            .map(jwt -> jwt.getClaim("sub"));
     }
 
     public String getCurrentUserEmail() {

@@ -23,6 +23,8 @@ CREATE TABLE vendor_members (
     vendor_id   UUID NOT NULL,
     user_id     UUID NOT NULL,
     
+    email      VARCHAR(255) NOT NULL,
+
     status      VARCHAR(20) DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE', 'INVITED', 'SUSPENDED', 'LEFT')),
     
     joined_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -37,8 +39,8 @@ CREATE TABLE vendor_members (
 );
 
 CREATE INDEX idx_vendor_members_vendor ON vendor_members(vendor_id);
-CREATE INDEX idx_vendor_members_user   ON vendor_members(user_id);
-CREATE INDEX idx_vendor_members_role   ON vendor_members(role);
+CREATE INDEX idx_vendor_members_vendor_status ON vendor_members(vendor_id, status);
+CREATE INDEX idx_vendor_members_user_status ON vendor_members(user_id, status);
 
 
 CREATE TABLE vendor_profiles (
@@ -60,12 +62,13 @@ CREATE TABLE vendor_profiles (
 
 CREATE TABLE vendor_audit_logs (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    vendor_id       UUID NOT NULL REFERENCES vendors(id),
+    vendor_id       UUID NOT NULL,
     action          VARCHAR(50) NOT NULL, 
-    old_value       TEXT,
-    new_value       TEXT,
+    old_value       JSONB,
+    new_value       JSONB,
     reason          TEXT,                
     performed_by    UUID NOT NULL,       
     created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX idx_vendor_audit_vendor ON vendor_audit_logs(vendor_id);
+CREATE INDEX idx_vendor_audit_performed_by ON vendor_audit_logs(performed_by);

@@ -20,13 +20,20 @@ import java.util.UUID;
  * @created 14/01/2026 14:46h
  */
 @Entity
-@Table(name = "vendor_members")
-@EntityListeners(AuditingEntityListener.class)
 @Getter
 @Setter
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@Table(
+    name = "vendor_members",
+    indexes = {
+        @Index(name = "idx_vendor_members_vendor", columnList = "vendor_id"),
+        @Index(name = "idx_vendor_members_user", columnList = "user_id"),
+        @Index(name = "idx_vendor_members_status", columnList = "status")
+    }
+)
+@EntityListeners(AuditingEntityListener.class)
 public class VendorMember {
 
     @Id
@@ -39,6 +46,9 @@ public class VendorMember {
 
     @Column(name = "user_id", nullable = false)
     private UUID userId;
+
+    @Column(name = "email", nullable = false, length = 255)
+    private String email;
 
     @Default
     @Column(name = "status", nullable = false, length = 20)

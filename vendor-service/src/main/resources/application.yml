@@ -4,7 +4,6 @@ server:
     connection-timeout: 2s
     idle-timeout: 30s
 
-
 nhutphuongasasa:
   default-provider: "system"
   default-email: "unknown@system.local"
@@ -23,7 +22,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: none
+      ddl-auto: validate
   datasource:
     url: jdbc:postgresql://ep-dawn-grass-a1wt8d9l-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
     username: neondb_owner

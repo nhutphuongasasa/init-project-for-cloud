@@ -26,13 +26,20 @@ import java.util.UUID;
  * @created 24/11/2025
  */
 @Entity
-@Table(name = "vendors")
-@EntityListeners(AuditingEntityListener.class)
 @Getter
 @Setter
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@Table(
+    name = "vendors",
+    indexes = {
+        @Index(name = "idx_vendors_slug", columnList = "slug"),
+        @Index(name = "idx_vendors_status", columnList = "status"),
+        @Index(name = "idx_vendors_owner", columnList = "owner_id")
+    }
+)
+@EntityListeners(AuditingEntityListener.class)
 public class Vendor {
 
     @Id

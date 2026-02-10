@@ -2,6 +2,7 @@ package com.cloud.vendor_service.application.service;
 
 import java.util.UUID;
 
+import org.springframework.boot.autoconfigure.security.oauth2.resource.OAuth2ResourceServerProperties.Jwt;
 import org.springframework.stereotype.Service;
 
 import com.cloud.vendor_service.application.dto.request.UpdateBasicInfoVendorRequest;
@@ -9,11 +10,11 @@ import com.cloud.vendor_service.application.dto.request.UpdateProfileVendorReque
 import com.cloud.vendor_service.application.dto.response.VendorResponse;
 import com.cloud.vendor_service.application.exception.custom.VendorNotFoundException;
 import com.cloud.vendor_service.application.mapper.VendorMapper;
+import com.cloud.vendor_service.common.utils.jwt.JwtUtils;
 import com.cloud.vendor_service.domain.model.Vendor;
 import com.cloud.vendor_service.domain.model.VendorProfile;
 import com.cloud.vendor_service.infrastructure.adapter.outbound.repository.VendorProfileRepository;
 import com.cloud.vendor_service.infrastructure.adapter.outbound.repository.VendorRepository;
-import com.cloud.vendor_service.common.utils.security.AuthenticatedUserProvider;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,11 +30,11 @@ import lombok.extern.slf4j.Slf4j;
 public class ProfileService {
     private final VendorProfileRepository vendorProfileRepository;
     private final VendorRepository vendorRepository;
-    private final VendorMapper vendorMapper;    
-    private final AuthenticatedUserProvider userProvider;
+    private final VendorMapper vendorMapper;   
+    private final JwtUtils jwtUtils; 
 
     public VendorResponse updateBasicInfo(UpdateBasicInfoVendorRequest request){
-        UUID vendorId = userProvider.getVendorIdFromAuthentication();
+        UUID vendorId = getCurrentVendorId();
 
         log.info("Updating basic info for vendorId={}", vendorId);
 
@@ -52,7 +53,7 @@ public class ProfileService {
     }
 
     public VendorResponse updateProfile(UpdateProfileVendorRequest request){
-        UUID vendorId = userProvider.getVendorIdFromAuthentication();
+        UUID vendorId = getCurrentVendorId();
 
         log.info("Updating profile for vendorId={}", vendorId);
         
@@ -69,6 +70,13 @@ public class ProfileService {
         vendorProfileRepository.save(existedVendorProfile);
 
         return vendorMapper.toResponse(existedVendorProfile.getVendor());
+    }
+
+    private UUID getCurrentVendorId(){
+        return jwtUtils.getCurrentVendorId().orElseThrow(() -> {
+            log.error("Vendor ID not found in JWT");
+            return new VendorNotFoundException("Vendor ID not found in JWT");
+        });
     }
 
     public VendorResponse getPublicVendorBySlug(String slug){
