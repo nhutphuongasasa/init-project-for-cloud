@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 /**
  * @author nhutphuong
  * @version 1
- * @created 8/02/2025 20:00h
+ * @since 8/02/2025 20:00h
  */
 @Entity
 @Table(name = "user_vendor_access")

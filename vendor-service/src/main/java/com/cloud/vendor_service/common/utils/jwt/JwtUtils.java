@@ -6,12 +6,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Component;
 
 /**
@@ -64,44 +62,28 @@ public final class JwtUtils {
             .map(UUID::fromString);
     }
 
-    public String getTokenFromContextHolder() {
+    public Optional<String> getTokenFromContextHolder() {
+        return Optional.ofNullable(getJwt()).map(Jwt::getTokenValue);
+    }
+
+    public Optional<String> getCurrentUsername() {
         Authentication auth = getAuthentication();
-        if (auth instanceof JwtAuthenticationToken jwtAuth) {
-            return jwtAuth.getToken().getTokenValue();
-        }
-        return null;
+        return auth != null ? Optional.of(auth.getName()) : Optional.empty();
     }
 
-    public String getCurrentUsername() {
-        Authentication auth = getAuthentication();
-        return auth != null ? auth.getName() : null;
-    }
-
-    public String getCurrentFullName() {
+    public Optional<String> getCurrentFullName() {
         Jwt jwt = getJwt();
-        return jwt != null ? jwt.getClaim("name") : null;
+        return jwt != null ? Optional.ofNullable(jwt.getClaim("name")) : Optional.empty();
     }
 
-    public List<String> getCurrentRoles() {
-        Authentication auth = getAuthentication();
-        if (auth != null){
-            return auth.getAuthorities()
-                .stream()
-                .map(role -> role.getAuthority())
-                .collect(Collectors.toList());
-        }else{
-            return List.of();
-        }
-    }
-
-    public Instant getCurrentExpireAt() {
+    public Optional<Instant> getCurrentExpireAt() {
         Jwt jwt = getJwt();
-        return jwt != null ? jwt.getExpiresAt() : null;
+        return jwt != null ? Optional.of(jwt.getExpiresAt()) : Optional.empty();
     }
 
-    public Instant getCurrentIssueAt() {
+    public Optional<Instant> getCurrentIssueAt() {
         Jwt jwt = getJwt();
-        return jwt != null ? jwt.getIssuedAt() : null;
+        return jwt != null ? Optional.of(jwt.getIssuedAt()) : Optional.empty();
     }
 
     public Optional<UUID> getCurrentUserId() {
@@ -109,9 +91,9 @@ public final class JwtUtils {
             .map(jwt -> jwt.getClaim("sub"));
     }
 
-    public String getCurrentUserEmail() {
+    public Optional<String> getCurrentUserEmail() {
         Jwt jwt = getJwt();
-        return jwt != null ? jwt.getClaim("email") : null;
+        return jwt != null ? Optional.ofNullable(jwt.getClaim("email")) : Optional.empty();
     }
 
     public Map<String, Object> getCurrentUserClaims() {

@@ -23,7 +23,7 @@ import feign.Retryer;
 public class FeignClientConfig {
 
     /**
-     * them accesstoken vao header khi goi api tu client
+     * add access token to header of feign client request
      */
     @Bean
     public RequestInterceptor requestInterceptor() {
@@ -37,7 +37,7 @@ public class FeignClientConfig {
     }
 
     /**
-     * cau hinh timeout cho feign client
+     * config timeout for feign client
      */
     @Bean
     public feign.Request.Options feignRequestOptions() {
@@ -49,7 +49,7 @@ public class FeignClientConfig {
     }
 
     /**
-     * cau hinh retry cho feign client
+     * config retry for feign client
      */
     @Bean
     public Retryer feignRetryer() {
@@ -61,7 +61,7 @@ public class FeignClientConfig {
     }
 
     /**
-     * cau hinh log cho feign client
+     * config log for feign client
      */
     @Bean
     public Logger.Level feignLoggerLevel() {

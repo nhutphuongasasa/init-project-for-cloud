@@ -30,7 +30,7 @@ import lombok.extern.slf4j.Slf4j;
 public class VendorController {
     private final VendorService vendorService;
 
-    @PreAuthorize("hasRole('VENDOR')")
+    @PreAuthorize("@ss.hasR('GUEST')")
     @PostMapping("/me/register")
     public ResponseEntity<FormResponse<VendorResponse>> registerVendor(@Valid @RequestBody CreateRequest request){
         log.info("Registering vendor: {}", request);
@@ -43,7 +43,7 @@ public class VendorController {
                 .build());
     }    
 
-    @PreAuthorize("hasRole('VENDOR')")
+    @PreAuthorize("@ss.hasR('VENDOR_OWNER')")
     @GetMapping("/me")
     public ResponseEntity<FormResponse<VendorProfileResponse>> getMyVendor(){
         log.info("Getting my vendor");

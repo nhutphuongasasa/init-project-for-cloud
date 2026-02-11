@@ -2,14 +2,12 @@ package com.cloud.vendor_service.application.service;
 
 import java.util.UUID;
 
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import com.cloud.vendor_service.application.dto.BaseInfoLogDTO;
 import com.cloud.vendor_service.application.dto.request.VendorAuditLogRequest;
-import com.cloud.vendor_service.application.exception.custom.UserNotFoundException;
 import com.cloud.vendor_service.application.mapper.VendorAuditLogMapper;
-import com.cloud.vendor_service.common.utils.jwt.JwtUtils;
+import com.cloud.vendor_service.common.utils.jwt.SecurityHelper;
 import com.cloud.vendor_service.domain.model.VendorAuditLog;
 import com.cloud.vendor_service.infrastructure.adapter.outbound.repository.VendorAuditLogRepository;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -29,16 +27,13 @@ import lombok.extern.slf4j.Slf4j;
 public class VendorAuditLogService {
     private final VendorAuditLogRepository vendorAuditLogRepository;
     private final VendorAuditLogMapper vendorAuditLogMapper;
-    private final JwtUtils jwtUtils;
     private final ObjectMapper objectMapper;
+    private final SecurityHelper securityHelper;
 
-    @Async
     public void saveVendorAuditLog(UUID vendorId, String action, Object oldObj, Object newObj, String reason) {
         log.debug("Saving vendor audit log for vendorId: {}, action: {}", vendorId, action);
 
-        UUID performedBy = jwtUtils.getCurrentUserId().orElseThrow(
-            () -> new UserNotFoundException("Current user ID not found in JWT token.")
-        );
+        UUID performedBy = securityHelper.currentUserId();
 
         JsonNode oldValue = (oldObj != null) ? objectMapper.valueToTree(oldObj) : null;
         JsonNode newValue = (newObj != null) ? objectMapper.valueToTree(newObj) : null;

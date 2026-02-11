@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
 /**
  * @author nhutphuong
  * @version 1.0
- * @created 25/11/2025
+ * @since 25/11/2025
  */
 @Component
 public final class JwtUtils {

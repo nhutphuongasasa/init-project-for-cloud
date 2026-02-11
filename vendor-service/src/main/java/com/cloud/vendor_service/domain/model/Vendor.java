@@ -1,11 +1,8 @@
 package com.cloud.vendor_service.domain.model;
 
-import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
+import java.time.Instant;
+import java.util.Set;
+import java.util.UUID;
 
 import org.hibernate.annotations.UuidGenerator;
 import org.springframework.data.annotation.CreatedDate;
@@ -15,9 +12,22 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import com.cloud.vendor_service.domain.enums.VendorStatus;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
-import java.time.Instant;
-import java.util.Set;
-import java.util.UUID;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 
 /**
@@ -84,5 +94,14 @@ public class Vendor {
     @JsonIgnore
     @OneToMany(mappedBy = "vendor", fetch = FetchType.LAZY)
     private Set<VendorMember> members;
+
+    public void addNewProfile(String email) {
+        VendorProfile newProfile = VendorProfile.builder()
+            .email(email)
+            .vendor(this)
+            .build();
+        
+        this.setProfile(newProfile);
+    }
 
 }

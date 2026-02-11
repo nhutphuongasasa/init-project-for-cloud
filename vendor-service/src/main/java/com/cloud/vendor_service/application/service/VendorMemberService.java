@@ -5,13 +5,13 @@ import java.util.List;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.cloud.vendor_service.application.dto.response.UserResponse;
 import com.cloud.vendor_service.application.dto.response.VendorMemberResponse;
 import com.cloud.vendor_service.application.exception.custom.UserNotFoundException;
-import com.cloud.vendor_service.application.exception.custom.VendorNotFoundException;
 import com.cloud.vendor_service.application.mapper.VendorMemberMapper;
-import com.cloud.vendor_service.common.utils.jwt.JwtUtils;
+import com.cloud.vendor_service.common.utils.jwt.SecurityHelper;
 import com.cloud.vendor_service.domain.enums.VendorMemberStatus;
 import com.cloud.vendor_service.domain.model.VendorMember;
 import com.cloud.vendor_service.infrastructure.adapter.outbound.openfeign.client.AuthClient;
@@ -30,19 +30,20 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class VendorMemberService {
     private final AuthClient authClient;
-    private final JwtUtils jwtUtils;
     private final VendorMemberMapper vendorMemberMapper;
     private final VendorMemberRepository vendorMemberRepository;
     private final VendorAuditLogService vendorAuditLogService;
+    private final SecurityHelper securityHelper;
 
     /**
-     * moi thanh vien vao vendor
+     * invite member to current vendor by email
      * @param email
      * @return
      */
+    @Transactional
     public VendorMemberResponse inviteMember(String email){
         UUID userId = checkExistedUser(email);
-        UUID vendorId = getCurrentVendorId();
+        UUID vendorId = securityHelper.currentVendorId();
 
         validateInvitationEligibility(vendorId, userId);
 
@@ -78,17 +79,8 @@ public class VendorMemberService {
         }
     }
 
-    // private boolean isUserActiveMemberOfVendor(UUID vendorId, UUID userId, String email){
-    //     boolean isAlreadyMember = vendorMemberRepository.existsByVendorIdAndUserIdAndStatus(vendorId, userId, VendorMemberStatus.ACTIVE);
-    //     if (isAlreadyMember){
-    //         throw new RuntimeException("User is already a member of the vendor.");
-    //     }
-
-    //     return false;
-    // }
-
     /**
-     * kiem tra user co ton tai khong va tar ve thong tin user do
+     * check use is existed in auth service
      * @param email
      * @return
      */
@@ -107,17 +99,16 @@ public class VendorMemberService {
      * chap nhan moi tu organization
      * @param vendorId
      */
+    @Transactional
     public VendorMemberResponse AcceptInviteFromOrganization(UUID vendorId){
-        UUID userId = jwtUtils.getCurrentUserId().orElseThrow(
-            () -> new UserNotFoundException("Current user ID not found in JWT token.")
-        );
+        UUID userId = securityHelper.currentUserId();
 
         VendorMember member = vendorMemberRepository.findByVendorIdAndUserIdAndStatus(vendorId, userId, VendorMemberStatus.INVITED)
             .orElseThrow(
                 () -> new RuntimeException("No invitation found for this user from the specified vendor.")
             );
         
-        VendorMember oldMember = member;
+        VendorMemberStatus oldValue = member.getStatus();
 
         member.setStatus(VendorMemberStatus.ACTIVE);
         member.setJoinedAt(Instant.now());
@@ -127,18 +118,17 @@ public class VendorMemberService {
         vendorAuditLogService.saveVendorAuditLog(
             vendorId,
             "ACCEPT_INVITE",
-            oldMember,
-            member, 
+            oldValue,
+            member.getStatus(), 
             "User accepted invitation from organization."
         );
         
         return vendorMemberMapper.toInvitedVendorMemberResponse(member);
     }
 
+    @Transactional(readOnly = true)
     public List<VendorMemberResponse> loadMyInvites(){
-        UUID userId = jwtUtils.getCurrentUserId().orElseThrow(
-            () -> new UserNotFoundException("Current user ID not found in JWT token.")
-        );
+        UUID userId = securityHelper.currentUserId();
 
         List<VendorMember> myInvites = vendorMemberRepository.findByUserIdAndStatus(
             userId,
@@ -148,16 +138,18 @@ public class VendorMemberService {
         return vendorMemberMapper.toVendorMemberResponses(myInvites);
     }
 
+    @Transactional(readOnly = true)
     public List<VendorMemberResponse> loadInvitedMembers(){
         return loadMemberWithStatus(VendorMemberStatus.INVITED);
     }
 
-    List<VendorMemberResponse> getMyMembers(){
+    @Transactional(readOnly = true)
+    public List<VendorMemberResponse> getMyMembers(){
         return loadMemberWithStatus(VendorMemberStatus.ACTIVE);
     }
 
     private List<VendorMemberResponse> loadMemberWithStatus(VendorMemberStatus status){
-        UUID vendorId = getCurrentVendorId();
+        UUID vendorId = securityHelper.currentVendorId();
 
         List<VendorMember> invitedMembers = vendorMemberRepository.findByVendorIdAndStatus(
             vendorId,
@@ -166,14 +158,4 @@ public class VendorMemberService {
 
         return vendorMemberMapper.toVendorMemberResponses(invitedMembers);
     }
-
-    private UUID getCurrentVendorId(){
-        UUID vendorId = jwtUtils.getCurrentVendorId().orElseThrow(
-            () -> new VendorNotFoundException("Current vendor ID not found in JWT token.")
-        );
-
-        return vendorId;
-    }
-
-  
 }

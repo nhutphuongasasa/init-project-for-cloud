@@ -16,7 +16,7 @@ import jakarta.servlet.http.HttpServletRequest;
 /**
  * @author nhutphuong
  * @version 1.0
- * @created 24/11/2025
+ * @since 24/11/2025
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {

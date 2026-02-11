@@ -25,6 +25,7 @@ import lombok.RequiredArgsConstructor;
 public class ProfileController {
     private final ProfileService profileService;
 
+    @PreAuthorize("@ss.hasP('vendor:update')")
     @PutMapping("/basic-info")
     public ResponseEntity<FormResponse<VendorResponse>> updateBasicInfo(
             @RequestBody UpdateBasicInfoVendorRequest request) {
@@ -37,6 +38,7 @@ public class ProfileController {
         );
     }
 
+    @PreAuthorize("@ss.hasP('vendor:update')")
     @PutMapping()
     public ResponseEntity<FormResponse<VendorResponse>> updateProfile(
             @RequestBody UpdateProfileVendorRequest request) {
@@ -46,18 +48,6 @@ public class ProfileController {
                 .message("Update profile successfully")
                 .timestamp(Instant.now())
                 .build()    
-        );
-    }
-
-    @PreAuthorize("hasRole('ADMIN') or hasRole('VENDOR')")
-    @GetMapping("/slug/{slug}")
-    public ResponseEntity<FormResponse<VendorResponse>> getPublicVendorBySlug(@PathVariable String slug) {
-        return ResponseEntity.ok(
-            FormResponse.<VendorResponse>builder()
-                .data(profileService.getPublicVendorBySlug(slug))
-                .message("Get public vendor by slug successfully")
-                .timestamp(Instant.now())
-                .build()
         );
     }
 }

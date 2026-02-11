@@ -28,7 +28,7 @@ import lombok.extern.slf4j.Slf4j;
 @Validated
 @RestController
 @RequestMapping("/admin")
-@PreAuthorize("hasRole('SYSTEM_ADMIN')")
+@PreAuthorize("@ss.hasR('SYS_ADMIN')")
 @RequiredArgsConstructor
 public class AdminController {
     private final VendorService vendorService;

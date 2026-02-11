@@ -1,9 +1,10 @@
 package com.cloud.vendor_service.application.service;
 
+import java.security.Security;
 import java.util.UUID;
 
-import org.springframework.boot.autoconfigure.security.oauth2.resource.OAuth2ResourceServerProperties.Jwt;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.cloud.vendor_service.application.dto.request.UpdateBasicInfoVendorRequest;
 import com.cloud.vendor_service.application.dto.request.UpdateProfileVendorRequest;
@@ -11,6 +12,7 @@ import com.cloud.vendor_service.application.dto.response.VendorResponse;
 import com.cloud.vendor_service.application.exception.custom.VendorNotFoundException;
 import com.cloud.vendor_service.application.mapper.VendorMapper;
 import com.cloud.vendor_service.common.utils.jwt.JwtUtils;
+import com.cloud.vendor_service.common.utils.jwt.SecurityHelper;
 import com.cloud.vendor_service.domain.model.Vendor;
 import com.cloud.vendor_service.domain.model.VendorProfile;
 import com.cloud.vendor_service.infrastructure.adapter.outbound.repository.VendorProfileRepository;
@@ -31,12 +33,18 @@ public class ProfileService {
     private final VendorProfileRepository vendorProfileRepository;
     private final VendorRepository vendorRepository;
     private final VendorMapper vendorMapper;   
-    private final JwtUtils jwtUtils; 
+    private final SecurityHelper securityHelper;
 
+    /***
+     * Update basic info of vendor
+     * @param request
+     * @return
+     */
+    @Transactional
     public VendorResponse updateBasicInfo(UpdateBasicInfoVendorRequest request){
-        UUID vendorId = getCurrentVendorId();
+        UUID vendorId = securityHelper.currentVendorId();
 
-        log.info("Updating basic info for vendorId={}", vendorId);
+        log.debug("Updating basic info for vendorId={} with request={}", vendorId, request);
 
         Vendor existedVendor = vendorRepository.findById(vendorId)
             .orElseThrow(() -> {
@@ -45,17 +53,22 @@ public class ProfileService {
 
         vendorMapper.updateBasicInfoVendorFromDto(request, existedVendor);
         
-        log.debug("Basic info updated successfully for vendorId={}", vendorId);
-        
         vendorRepository.save(existedVendor);
+        
+        log.info("Basic info updated successfully for vendorId={}", vendorId);
 
         return vendorMapper.toResponse(existedVendor);
     }
 
+    /***
+     * Update profile of vendor
+     * @param request
+     * @return
+     */
     public VendorResponse updateProfile(UpdateProfileVendorRequest request){
-        UUID vendorId = getCurrentVendorId();
+        UUID vendorId = securityHelper.currentVendorId();
 
-        log.info("Updating profile for vendorId={}", vendorId);
+        log.debug("Updating profile for vendorId={} with request={}", vendorId, request);
         
         VendorProfile existedVendorProfile = vendorProfileRepository.findByVendorId(vendorId)
             .orElseThrow(() -> {
@@ -65,31 +78,10 @@ public class ProfileService {
 
         vendorMapper.updateVendorProfileFromDto(request, existedVendorProfile);
 
-        log.debug("Profile updated successfully for vendorId={}", vendorId);
-        
         vendorProfileRepository.save(existedVendorProfile);
+        
+        log.info("Profile updated successfully for vendorId={}", vendorId);
 
         return vendorMapper.toResponse(existedVendorProfile.getVendor());
-    }
-
-    private UUID getCurrentVendorId(){
-        return jwtUtils.getCurrentVendorId().orElseThrow(() -> {
-            log.error("Vendor ID not found in JWT");
-            return new VendorNotFoundException("Vendor ID not found in JWT");
-        });
-    }
-
-    public VendorResponse getPublicVendorBySlug(String slug){
-        log.info("Fetching public vendor by slug={}", slug);
-
-        Vendor existedVendor = vendorRepository.findBySlug(slug)
-            .orElseThrow(() -> {
-                log.error("Vendor not found with slug={}", slug);
-                return new VendorNotFoundException(slug);
-            });
-
-        log.debug("Vendor fetched successfully with slug={}", slug);
-        
-        return vendorMapper.toResponse(existedVendor);
     }
 }
