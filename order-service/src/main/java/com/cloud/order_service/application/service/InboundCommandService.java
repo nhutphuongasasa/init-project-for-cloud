@@ -30,11 +30,6 @@ import com.cloud.order_service.infrastructure.mapper.InboundOrderMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * @author nhutphuong
- * @since 2026/1/14 11:15h
- * @version 1
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor

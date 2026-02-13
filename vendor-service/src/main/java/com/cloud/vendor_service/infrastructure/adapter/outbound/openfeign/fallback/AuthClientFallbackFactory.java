@@ -12,11 +12,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.openfeign.FallbackFactory;
 import org.springframework.stereotype.Component;
 
-/**
- * @author nhutphuong
- * @since 2025-02-8 11:04
- * @version 1.0`
- */
 @Slf4j
 @Component
 @RequiredArgsConstructor

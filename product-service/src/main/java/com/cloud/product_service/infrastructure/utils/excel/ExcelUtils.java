@@ -6,9 +6,7 @@ import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.Row;
 import org.springframework.stereotype.Component;
-/**
- * @author nhutphuong
- */
+
 @Component
 public class ExcelUtils {
     public String getStringCellValue(Row row, int cellIndex){

@@ -30,11 +30,6 @@ import com.cloud.product_service.domain.model.Product;
 import com.cloud.product_service.domain.model.ProductImage;
 import com.cloud.product_service.domain.model.ProductVariant;
 
-/**
- * @author nhutphuong
- * @version 1.0
- * @created 26/11/2025
- */
 @Mapper(componentModel = "spring")
 public interface ProductMapper {
 

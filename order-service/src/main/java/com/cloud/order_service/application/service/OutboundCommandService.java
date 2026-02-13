@@ -45,11 +45,6 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * @author nhutphuong
- * @version 1
- * @since 2026/1/14 11:09h
- */
 @Service
 @RequiredArgsConstructor
 @Slf4j

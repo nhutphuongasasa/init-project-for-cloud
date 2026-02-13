@@ -20,11 +20,6 @@ import com.cloud.order_service.infrastructure.mapper.InboundOrderMapper;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
-/***
- * @author nhutphuogn
- * @version 1
- * @since 2026/1/14 11:49h
- */
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)

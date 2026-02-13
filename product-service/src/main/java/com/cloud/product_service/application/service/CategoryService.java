@@ -16,11 +16,6 @@ import com.cloud.product_service.application.mapper.CategoryMapper;
 import com.cloud.product_service.domain.model.Category;
 import com.cloud.product_service.infrastructure.adapter.outbound.repository.CategoryRepository;
 
-/**
- * @author nhutphuong
- * @version 1.0
- * @created 28/11/2025
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor

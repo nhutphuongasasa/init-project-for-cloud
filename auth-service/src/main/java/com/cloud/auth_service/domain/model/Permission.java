@@ -9,11 +9,6 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-/**
- * @author nhutphuong
- * @version 1
- * @since 8/02/2025 19:39h
- */
 @Entity
 @Table(name = "permissions")
 @Getter

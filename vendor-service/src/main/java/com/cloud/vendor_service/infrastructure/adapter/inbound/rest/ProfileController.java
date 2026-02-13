@@ -14,11 +14,6 @@ import com.cloud.vendor_service.common.response.FormResponse;
 
 import lombok.RequiredArgsConstructor;
 
-/**
- * @author nhutphuong
- * @version 1.0
- * @created 25/11/2025
- */
 @RestController
 @RequestMapping("/profile")
 @RequiredArgsConstructor

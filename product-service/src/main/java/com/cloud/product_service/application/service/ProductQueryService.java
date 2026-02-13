@@ -27,12 +27,6 @@ import com.cloud.product_service.infrastructure.adapter.outbound.repository.Prod
 import com.cloud.product_service.infrastructure.adapter.outbound.repository.Specification.ProductSpecification;
 import com.cloud.product_service.common.utils.jwt.JwtUtils;
 
-/**
- * @author: nhutphuong
- * @date: 2025-11-28
- * @version: 2
- * @description: service query product with logging
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor

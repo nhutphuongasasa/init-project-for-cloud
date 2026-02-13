@@ -9,11 +9,6 @@ import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Service;
 
-/**
- * @author nhutphuong
- * @since 2026/1/13 22:09h
- * @version 1
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor

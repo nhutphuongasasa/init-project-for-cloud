@@ -14,11 +14,6 @@ import com.cloud.vendor_service.domain.enums.VendorMemberStatus;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * @author nhutphuong
- * @version 2
- * @created 14/01/2026 14:46h
- */
 @Entity
 @Getter
 @Setter

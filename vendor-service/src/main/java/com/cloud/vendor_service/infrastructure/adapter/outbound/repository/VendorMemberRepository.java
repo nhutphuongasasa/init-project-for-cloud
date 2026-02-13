@@ -9,11 +9,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import com.cloud.vendor_service.domain.enums.VendorMemberStatus;
 import com.cloud.vendor_service.domain.model.VendorMember;
 
-/**
- * @author nhutphuong
- * @version 1
- * @since 2026/1/15 20:27h
- */
 public interface VendorMemberRepository extends JpaRepository<VendorMember, UUID> {
     boolean existsByVendorIdAndUserIdAndStatus(UUID vendorId, UUID userId, VendorMemberStatus status);
     Optional<VendorMember> findByVendorIdAndUserIdAndStatus(UUID vendorId, UUID userId, VendorMemberStatus status);

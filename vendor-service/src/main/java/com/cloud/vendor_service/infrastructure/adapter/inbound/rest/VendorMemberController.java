@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.method.P;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,11 +14,6 @@ import com.cloud.vendor_service.common.response.FormResponse;
 
 import lombok.RequiredArgsConstructor;
 
-/**
- * @author nhutphuong
- * @version 1.0
- * @since 2026/2/11 19:18
- */
 @RestController
 @RequestMapping("/members")
 @RequiredArgsConstructor

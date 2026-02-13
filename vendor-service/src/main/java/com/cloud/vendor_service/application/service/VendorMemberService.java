@@ -20,11 +20,6 @@ import com.cloud.vendor_service.infrastructure.adapter.outbound.repository.Vendo
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * @author nhutphuong
- * @version 1
- * @since 2026/1/15 20:41h
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor

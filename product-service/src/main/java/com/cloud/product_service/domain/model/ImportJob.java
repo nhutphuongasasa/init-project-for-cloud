@@ -21,11 +21,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/**
- * @author nhutphuong
- * @version 1.0
- * @created 28/11/2025
- */
 @Entity
 @Getter
 @Setter

@@ -15,12 +15,6 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
 
-/**
- * @author: nhutphuong
- * @date: 2025-11-24
- * @version: 1.0
- * @description: config security cho vendor service
- */
 @EnableMethodSecurity
 @Configuration
 @EnableWebSecurity

@@ -24,11 +24,6 @@ import com.cloud.order_service.common.response.FormResponse;
 
 import lombok.RequiredArgsConstructor;
 
-/**
- * @author nhutphuong
- * @version 1
- * @since 2026/1/14 11:58h
- */
 @Validated
 @RestController
 @RequiredArgsConstructor

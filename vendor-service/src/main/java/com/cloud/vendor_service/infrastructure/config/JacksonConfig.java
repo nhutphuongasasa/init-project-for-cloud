@@ -9,11 +9,6 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
-/***
- * @author nhutphuong
- * @version 1.0
- * @since 10/2/2026
- */
 @Configuration
 public class JacksonConfig {
 

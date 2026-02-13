@@ -14,11 +14,6 @@ import com.cloud.vendor_service.common.exception.BaseException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * @author nhutphuong
- * @version 1.0
- * @created 24/11/2025
- */
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {

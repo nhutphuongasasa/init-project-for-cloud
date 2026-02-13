@@ -12,11 +12,6 @@ import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.servers.Server;
 
-/**
- * @author nhutphuong
- * @since 6/2/2025
- * @version 1
- */
 @Configuration
 public class OpenApiConfig {
     @Bean

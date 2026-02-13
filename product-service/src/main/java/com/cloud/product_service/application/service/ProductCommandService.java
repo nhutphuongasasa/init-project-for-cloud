@@ -40,11 +40,6 @@ import io.micrometer.common.util.StringUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * @author nhutphuong
- * @version 1.0
- * @created 26/11/2025
- */
 @Slf4j
 @Service
 @Transactional

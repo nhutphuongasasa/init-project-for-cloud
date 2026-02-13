@@ -22,11 +22,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-/**
- * @author nhutphuong
- * @version 1.0
- * @created 28/11/2025
- */
 @Component
 public class ProductExcelMapper {
 

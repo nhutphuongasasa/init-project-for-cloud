@@ -19,11 +19,6 @@ import com.cloud.vendor_service.domain.enums.VendorStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * @author nhutphuong
- * @version 2.0
- * @created 25/11/2025
- */
 @Slf4j
 @Validated
 @RestController

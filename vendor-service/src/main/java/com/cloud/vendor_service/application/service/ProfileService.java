@@ -1,6 +1,5 @@
 package com.cloud.vendor_service.application.service;
 
-import java.security.Security;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
@@ -11,7 +10,6 @@ import com.cloud.vendor_service.application.dto.request.UpdateProfileVendorReque
 import com.cloud.vendor_service.application.dto.response.VendorResponse;
 import com.cloud.vendor_service.application.exception.custom.VendorNotFoundException;
 import com.cloud.vendor_service.application.mapper.VendorMapper;
-import com.cloud.vendor_service.common.utils.jwt.JwtUtils;
 import com.cloud.vendor_service.common.utils.jwt.SecurityHelper;
 import com.cloud.vendor_service.domain.model.Vendor;
 import com.cloud.vendor_service.domain.model.VendorProfile;
@@ -21,11 +19,6 @@ import com.cloud.vendor_service.infrastructure.adapter.outbound.repository.Vendo
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * @author nhutphuong
- * @version 1.0
- * @created 24/11/2025
- */
 @Service
 @Slf4j
 @AllArgsConstructor

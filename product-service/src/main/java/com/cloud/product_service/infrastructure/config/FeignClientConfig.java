@@ -13,12 +13,6 @@ import feign.Logger;
 import feign.RequestInterceptor;
 import feign.Retryer;
 
-/**
- * @author: Phuong Le
- * @date: 2025-11-24
- * @version: 1.0
- * @description: them accesstoken vao header khi goi api tu client
- */
 @Configuration
 @EnableFeignClients(basePackages = "com.cloud.product_service.infastructure.outbound.client")
 public class FeignClientConfig {

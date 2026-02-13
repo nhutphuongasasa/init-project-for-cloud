@@ -6,11 +6,6 @@ import org.springframework.stereotype.Component;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * @author nhutphunog
- * @since 2026/1/12 18:49h
- * @version 1
- */
 @Slf4j
 @Component
 @RequiredArgsConstructor

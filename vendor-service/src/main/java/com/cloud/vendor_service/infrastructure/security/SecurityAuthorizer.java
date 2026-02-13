@@ -6,12 +6,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.UUID;
 
-/***
- * @author nhutphuong
- * @version 1.0
- * @since 11/2/2026
- * @description class support security authorization checks in SpEL expressions
-*/
 @Component("ss")
 @RequiredArgsConstructor
 public class SecurityAuthorizer {

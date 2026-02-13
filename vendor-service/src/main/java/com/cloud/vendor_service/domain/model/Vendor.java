@@ -30,11 +30,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 
-/**
- * @author nhutphuong
- * @version 2
- * @created 24/11/2025
- */
 @Entity
 @Getter
 @Setter

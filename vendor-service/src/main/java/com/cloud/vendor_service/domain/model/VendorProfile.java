@@ -13,11 +13,6 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-/**
- * @author nhutphuong
- * @version 1.0
- * @created 24/11/2025
- */
 @Entity
 @Table(name = "vendor_profiles")
 @Getter 

@@ -28,11 +28,6 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * @author nhutphuong
- * @version 2.0
- * @since 24/11/2025
- */
 @Service
 @Slf4j
 @RequiredArgsConstructor

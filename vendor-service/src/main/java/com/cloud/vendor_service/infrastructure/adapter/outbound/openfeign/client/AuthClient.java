@@ -10,11 +10,6 @@ import com.cloud.vendor_service.infrastructure.config.FeignClientConfig;
 
 import jakarta.validation.Valid;
 
-/**
- * @author nhutphuong
- * @since 2025-02-8
- * @version 1.0
- */
 @FeignClient(
     name = "auth-service",
     configuration = FeignClientConfig.class,

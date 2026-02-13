@@ -13,11 +13,6 @@ import com.cloud.product_service.common.exception.BaseException;
 
 import jakarta.servlet.http.HttpServletRequest;
 
-/**
- * @author nhutphuong
- * @version 1.0
- * @since 24/11/2025
- */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 

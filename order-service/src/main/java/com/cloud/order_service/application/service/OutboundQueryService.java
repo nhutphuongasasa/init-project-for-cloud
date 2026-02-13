@@ -28,11 +28,6 @@ import com.cloud.order_service.infrastructure.mapper.FulfillmentOrderMapper;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
-/**
- * @author nhutphuong
- * @version 1
- * @since 2026/1/14 11:45h
- */
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)

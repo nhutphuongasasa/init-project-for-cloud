@@ -10,11 +10,6 @@ import com.cloud.vendor_service.application.dto.response.VendorMemberResponse;
 import com.cloud.vendor_service.domain.enums.VendorMemberStatus;
 import com.cloud.vendor_service.domain.model.VendorMember;
 
-/**
- * @author nhutphuong
- * @version 1
- * @since 2026/2/9 16:15h
- */
 @Mapper(componentModel = "spring", imports = {VendorMemberStatus.class})
 public interface VendorMemberMapper {
     @Mapping(target = "status", expression = "java(VendorMemberStatus.INVITED)")

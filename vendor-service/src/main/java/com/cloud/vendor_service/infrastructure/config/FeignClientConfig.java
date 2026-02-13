@@ -13,11 +13,6 @@ import feign.Logger;
 import feign.RequestInterceptor;
 import feign.Retryer;
 
-/**
- * @author: Phuong Le
- * @date: 2025-11-24
- * @version: 1.0
- */
 @Configuration
 @EnableFeignClients(basePackages = "com.cloud.vendor_service.infastructure.outbound.client")
 public class FeignClientConfig {

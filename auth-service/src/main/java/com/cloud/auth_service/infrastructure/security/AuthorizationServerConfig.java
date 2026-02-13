@@ -60,9 +60,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * @author nhutphuong
- * @version 3
- * @since 2026/1/17 17:56
 1. Tại sao chưa kịp chọn Account Google đã hiện Popup?
 Đây là cái bẫy "Redirect 2 lần" (Double Redirect) mà trình duyệt thực hiện cực nhanh:
 

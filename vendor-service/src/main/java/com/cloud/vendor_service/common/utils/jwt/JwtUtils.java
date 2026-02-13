@@ -12,11 +12,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Component;
 
-/**
- * @author nhutphuong
- * @version 1.1
- * @created 25/11/2025
- */
 @Component
 public final class JwtUtils {
 

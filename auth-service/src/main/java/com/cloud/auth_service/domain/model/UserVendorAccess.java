@@ -8,11 +8,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 
-/**
- * @author nhutphuong
- * @version 1
- * @since 8/02/2025 20:00h
- */
+
 @Entity
 @Table(name = "user_vendor_access")
 @Getter

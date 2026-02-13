@@ -8,12 +8,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-/***
- * Helper class to get security context information
- * @author nhutphuong
- * @version 1.0
- * @created 11/2/2026
- */
 @Component
 @RequiredArgsConstructor
 public class SecurityHelper {

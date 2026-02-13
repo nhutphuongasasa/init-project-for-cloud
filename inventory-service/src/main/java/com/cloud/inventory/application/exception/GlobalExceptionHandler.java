@@ -13,11 +13,6 @@ import com.cloud.inventory.common.exception.GlobalErrorCode;
 
 import jakarta.servlet.http.HttpServletRequest;
 
-/**
- * @author nhutphuong
- * @version 1.0
- * @since 24/11/2025
- */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 

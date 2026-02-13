@@ -14,11 +14,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * @author nhutphuong
- * @version 1
- * @since 2026/1/14 14:53
- */
 @Entity
 @Getter
 @Setter

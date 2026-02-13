@@ -12,11 +12,6 @@
 // import lombok.extern.slf4j.Slf4j;
 // import reactor.core.publisher.Mono;
 
-// /**
-//  * @author: Phuong Le
-//  * @date: 2025-11-22
-//  * description: them accesstoken vao header
-// */
 
 // @Component
 // @Slf4j

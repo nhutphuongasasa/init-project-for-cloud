@@ -19,11 +19,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * @author nhutphuong
- * @since 2026/1/13 21:30h
- * @version 2
- */
 @Slf4j
 @RestController
 @RequestMapping("/roles")

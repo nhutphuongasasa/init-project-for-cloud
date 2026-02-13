@@ -16,11 +16,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * @author nhutphuong
- * @version 1
- * @since 2026/2/10 10:26
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor

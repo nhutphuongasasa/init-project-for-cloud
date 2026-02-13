@@ -13,11 +13,7 @@ import com.cloud.auth_service.infrastructure.adapter.outbound.repository.UserVen
 
 import lombok.RequiredArgsConstructor;
 
-/**
- * @author nhutphuong
- * @version 1
- * @since 8/02/2025 20:30h
- */
+
 @Service
 @RequiredArgsConstructor
 public class UserVendorAccessService {
