@@ -27,12 +27,8 @@ public class ProfileService {
     private final VendorRepository vendorRepository;
     private final VendorMapper vendorMapper;   
     private final SecurityHelper securityHelper;
+    private final VendorAuditLogService vendorAuditLogService; 
 
-    /***
-     * Update basic info of vendor
-     * @param request
-     * @return
-     */
     @Transactional
     public VendorResponse updateBasicInfo(UpdateBasicInfoVendorRequest request){
         UUID vendorId = securityHelper.currentVendorId();
@@ -40,41 +36,57 @@ public class ProfileService {
         log.debug("Updating basic info for vendorId={} with request={}", vendorId, request);
 
         Vendor existedVendor = vendorRepository.findById(vendorId)
-            .orElseThrow(() -> {
-                return new VendorNotFoundException(vendorId);
-            });
+            .orElseThrow(() -> new VendorNotFoundException(vendorId));
+
+        // Lưu trạng thái trước khi update để audit
+        Vendor oldVendor = existedVendor;  // tham chiếu, nhưng Jackson sẽ serialize snapshot
 
         vendorMapper.updateBasicInfoVendorFromDto(request, existedVendor);
         
-        vendorRepository.save(existedVendor);
+        Vendor updatedVendor = vendorRepository.save(existedVendor);
         
+        vendorAuditLogService.saveVendorAuditLog(
+            vendorId,
+            "UPDATE_BASIC_INFO",
+            oldVendor,                // trước khi thay đổi
+            updatedVendor,            // sau khi save
+            "Vendor basic information updated (name, slug, logo, description, etc.)"
+        );
+
         log.info("Basic info updated successfully for vendorId={}", vendorId);
 
-        return vendorMapper.toResponse(existedVendor);
+        return vendorMapper.toResponse(updatedVendor);
     }
 
-    /***
-     * Update profile of vendor
-     * @param request
-     * @return
-     */
+    @Transactional
     public VendorResponse updateProfile(UpdateProfileVendorRequest request){
         UUID vendorId = securityHelper.currentVendorId();
 
         log.debug("Updating profile for vendorId={} with request={}", vendorId, request);
         
-        VendorProfile existedVendorProfile = vendorProfileRepository.findByVendorId(vendorId)
+        VendorProfile existedProfile = vendorProfileRepository.findByVendorId(vendorId)
             .orElseThrow(() -> {
                 log.error("Vendor profile not found for vendorId={}", vendorId);
                 return new VendorNotFoundException(vendorId);
             });
 
-        vendorMapper.updateVendorProfileFromDto(request, existedVendorProfile);
+        // Lưu snapshot trước khi update
+        VendorProfile oldProfile = existedProfile;
 
-        vendorProfileRepository.save(existedVendorProfile);
+        vendorMapper.updateVendorProfileFromDto(request, existedProfile);
+
+        VendorProfile updatedProfile = vendorProfileRepository.save(existedProfile);
+        
+        vendorAuditLogService.saveVendorAuditLog(
+            vendorId,
+            "UPDATE_VENDOR_PROFILE",
+            oldProfile,
+            updatedProfile,
+            "Vendor profile updated (legal name, tax code, bank info, address, etc.)"
+        );
         
         log.info("Profile updated successfully for vendorId={}", vendorId);
 
-        return vendorMapper.toResponse(existedVendorProfile.getVendor());
+        return vendorMapper.toResponse(updatedProfile.getVendor());
     }
 }
